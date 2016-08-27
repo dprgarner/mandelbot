@@ -1,27 +1,24 @@
 const http = require('http');
 const fs = require('fs');
 const PNG = require('pngjs').PNG;
+const mandelbrot = require('./mandelbrot');
 
-function randomInt(range) {
-  return Math.round(range * Math.random());
-}
 
 http.createServer((req, res) => {
-  let s = Date.now();
-  // res.writeHead(200, {'Content-Type': 'text/plain'});
-  // 'Content-type: image/png'
-  // res.end('' + randomInt(16));
-  let png = new PNG({width: 1024, height: 768});
-  let a = randomInt(255);
-  let b = randomInt(255);
-  let c = randomInt(255);
-  let f = 32;
-  for (let y=0; y<png.height; y++) {
-    for (let x=0; x<png.width; x++) {
+  let startTime = Date.now();
+  let width = 250;
+  let height = 250;
+  let cap = 20;
+
+  let set = mandelbrot(width, height, -0.5, 0, 0.01, cap);
+
+  let png = new PNG({width, height});
+  for (let y = 0; y < png.height; y++) {
+    for (let x = 0; x < png.width; x++) {
       let idx = (png.width * y + x) << 2;
-      png.data[idx] = Math.min(255, Math.max(0, a + randomInt(f)));
-      png.data[idx+1] = Math.min(255, Math.max(0, b + randomInt(f)));
-      png.data[idx+2] = Math.min(255, Math.max(0, c + randomInt(f)));
+      png.data[idx] = 0;
+      png.data[idx+1] = Math.round((set[y][x] + 1) * 255 / (cap + 1));
+      png.data[idx+2] = set[y][x] === -1 ? 0 : 255;
       png.data[idx+3] = 255;
     }
   }
@@ -31,7 +28,6 @@ http.createServer((req, res) => {
     .pack()
     .pipe(res)
     .once('finish', function () {
-      console.log(`PNG outputted after ${Date.now() - s}ms`);
-      console.log(`Colours: ${a}, ${b}, ${c}`);
+      console.log(`PNG outputted after ${Date.now() - startTime}ms`);
     });
 }).listen(80);
