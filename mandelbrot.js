@@ -21,11 +21,11 @@ module.exports = function (width, height, centerX, centerY, scale, cap) {
   // scale: how large is a pixel?
   let set = [];
   let startX = centerX - scale * width / 2;
-  let startY = centerY - scale * height / 2;
+  let startY = centerY + scale * height / 2;
   for (let y = 0; y < height; y++) {
     set[y] = [];
     for (let x = 0; x < width; x++) {
-      set[y][x] = convergesWithin(cap, startX + scale * x, startY + scale * y);
+      set[y][x] = convergesWithin(cap, startX + scale * x, startY - scale * y);
     }
   }
   return set;
