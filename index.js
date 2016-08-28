@@ -6,8 +6,8 @@ const qs = require('qs');
 
 const mandelbrot = require('./mandelbrot');
 
-function createPng(width, height, startX, startY, scale, cap) {
-  let set = mandelbrot(width, height, startX, startY, scale, cap);
+function createPng(width, height, centerX, centerY, scale, cap) {
+  let set = mandelbrot(width, height, centerX, centerY, scale, cap);
 
   let scalar = 255 / (cap + 1);
   let png = new PNG({
@@ -35,22 +35,22 @@ http.createServer((req, res) => {
   var {
     width=600,
     height=600,
-    startX=-0.5,
-    startY=0,
+    x=-0.5,
+    y=0,
     cap=32,
     scale=1/250
   } = params;
   width = parseInt(width);
   height = parseInt(height);
   cap = parseInt(cap);
-  startX = parseFloat(startX);
-  startY = parseFloat(startY);
+  x = parseFloat(x);
+  y = parseFloat(y);
   scale = parseFloat(scale);
 
   // Eg: // /?cap=256&startX=-0.738531&startY=0.24&scale=0.00001
 
   res.writeHead(200, {'Content-Type': 'image/png'});
-  createPng(width, height, startX, startY, scale, cap)
+  createPng(width, height, x, y, scale, cap)
     .pipe(res)
     .once('finish', function () {
       console.log(`PNG outputted after ${Date.now() - startTime}ms`);
