@@ -40,16 +40,15 @@ function createPng(width, height, centerX, centerY, scale, cap) {
   return png.pack();
 }
 
-http.createServer((req, res) => {
-  let startTime = Date.now();
-
+function api (req, res) {
+  qs.parse(req.url.split('?')[0]);
   let params = qs.parse(req.url.split('?')[1]);
   var {
     width=600,
     height=600,
     x=-0.5,
     y=0,
-    cap=32,
+    cap=100,
     scale=1/250
   } = params;
   width = parseInt(width);
@@ -62,6 +61,12 @@ http.createServer((req, res) => {
   // Eg: // /?cap=256&startX=-0.738531&startY=0.24&scale=0.00001
 
   res.writeHead(200, {'Content-Type': 'image/png'});
-  createPng(width, height, x, y, scale, cap)
-    .pipe(res);
+  createPng(width, height, x, y, scale, cap).pipe(res);
+}
+
+http.createServer((req, res) => {
+  if (req.url.indexOf('/api') === 0) return api(req, res);
+
+  res.writeHead(200, {'Content-Type': 'text/html'});
+  fs.createReadStream('./index.html').pipe(res);
 }).listen(80);
