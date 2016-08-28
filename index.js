@@ -7,21 +7,33 @@ const qs = require('qs');
 const mandelbrot = require('./mandelbrot');
 
 function createPng(width, height, centerX, centerY, scale, cap) {
+  let startTime = Date.now();
   let set = mandelbrot(width, height, centerX, centerY, scale, cap);
+  console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  let scalar = 255 / (cap + 1);
   let png = new PNG({
     inputHasAlpha: false,
     deflateLevel: 0,
     width, height,
   });
 
+  let min = cap;
+  for (let y = 0; y < png.height; y++)
+    for (let x = 0; x < png.width; x++)
+      if (set[y][x] !== -1) 
+        min = Math.min(min, set[y][x]);
+
   for (let y = 0; y < png.height; y++) {
     for (let x = 0; x < png.width; x++) {
       let idx = (png.width * y + x) * 3;
-      png.data[idx] = Math.round((set[y][x] + 1) * scalar);
+      if (set[y][x] === -1) {
+        png.data[idx] = png.data[idx+1] = png.data[idx+2] = 0;
+        continue;
+      }
+
+      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (set[y][x] - min)) / Math.log(cap))));
       png.data[idx+1] = png.data[idx];
-      png.data[idx+2] = set[y][x] === -1 ? 0 : 255;
+      png.data[idx+2] = 255 - png.data[idx];
     }
   }
 
@@ -51,8 +63,5 @@ http.createServer((req, res) => {
 
   res.writeHead(200, {'Content-Type': 'image/png'});
   createPng(width, height, x, y, scale, cap)
-    .pipe(res)
-    .once('finish', function () {
-      console.log(`PNG outputted after ${Date.now() - startTime}ms`);
-    });
+    .pipe(res);
 }).listen(80);
