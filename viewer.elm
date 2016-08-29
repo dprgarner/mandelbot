@@ -46,61 +46,67 @@ decodeOffset : Decoder (Int, Int)
 decodeOffset =
   (object2 (,) ("offsetX" := int) ("offsetY" := int))
 
-onMovePosition : Attribute Msg
-onMovePosition =
-  on "mousemove" (map Move decodeOffset)
-
 boundedCoords : (Int, Int) -> (Int, Int)
 boundedCoords (x, y) =
   let
-    newX = max (zoomWidth // 2) (min (viewWidth - zoomWidth // 2) x)
-    newY = max (zoomHeight // 2) (min (viewHeight - zoomHeight // 2) y)
+    newX = x
+      |> min (viewWidth - zoomWidth // 2)
+      |> max (zoomWidth // 2)
+    newY = y
+      |> min (viewHeight - zoomHeight // 2)
+      |> max (zoomHeight // 2)
   in
     (newX, newY)
 
 px : Int -> String
 px i = toString i ++ "px"
 
-view : Model -> Html Msg
-view model =
+viewBox : Model -> Html Msg
+viewBox model =
   let
     (x, y) = boundedCoords model.zoomCoords
     (topX, topY) = (x - zoomWidth // 2, y - zoomHeight // 2)
-    (chosenX, chosenY) = model.chosenCoords
   in
-    div [] [
-      div [
-        style [
-          ("background-color", "red"),
-          ("border", "1px solid black"),
-          --("cursor", "none"),
-          ("width", px viewWidth),
-          ("height", px viewHeight)
-        ],
-        onMovePosition,
-        onClick Click
-      ] [
-        div [style [
-          ("position", "absolute"),
-          ("left", px topX),
-          ("top", px topY),
-          ("width", px zoomWidth),
-          ("height", px zoomHeight),
-          ("pointer-events", "none"),
-          ("border", "1px solid black")
-        ]] []
+    div [
+      style [
+        ("background-color", "red"),
+        ("border", "1px solid black"),
+        ("cursor", "pointer"),
+        ("width", px viewWidth),
+        ("height", px viewHeight)
       ],
-
+      on "mousemove" (map Move decodeOffset),
+      onClick Click
+    ] [
       div [style [
         ("position", "absolute"),
-        ("left", px 50),
-        ("top", px (viewHeight + 50)),
+        ("left", px topX),
+        ("top", px topY),
         ("width", px zoomWidth),
-        ("height", px zoomHeight)
-      ]] [
-        text ("(" ++ toString chosenX ++ "," ++ toString chosenY ++ ")")
-      ]
+        ("height", px zoomHeight),
+        ("pointer-events", "none"),
+        ("border", "1px solid black")
+      ]] []
     ]
+
+viewLastClicked : Model -> Html Msg
+viewLastClicked model =
+  let
+    (x, y) = model.chosenCoords
+  in
+    div [style [
+      ("position", "absolute"),
+      ("left", px 50),
+      ("top", px (viewHeight + 50)),
+      ("width", px zoomWidth),
+      ("height", px zoomHeight)
+    ]] [
+      text ("(" ++ toString x ++ "," ++ toString y ++ ")")
+    ]
+
+view : Model -> Html Msg
+view model =
+  div [] [viewBox model, viewLastClicked model]
 
 --
 -- Update
