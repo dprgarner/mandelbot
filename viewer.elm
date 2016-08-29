@@ -1,31 +1,28 @@
-import Html exposing (Attribute, button, div, text, Html)
+import Html exposing (Attribute, div, text, Html)
 import Html.Attributes exposing (style)
 import Html.App exposing (program)
 import Html.Events exposing (on, onClick)
-import Json.Decode exposing (succeed)
+import Json.Decode exposing ((:=), Decoder, int, map, object2)
 
-type Msg = Click (Int, Int)
 type alias Model = {coords : (Int, Int)}
+type Msg = Click (Int, Int)
 
---import Html.App exposing (beginnerProgram)
---main = program {model = 0, view = view, update = update}
+main = program {
+  init = init,
+  view = view,
+  update = update,
+  subscriptions = subscriptions
+}
 
-main =
-  program {
-    init = init,
-    view = view,
-    update = update,
-    subscriptions = subscriptions
-  }
+init = ({coords = (0, 0)}, Cmd.none)
 
-subscriptions : Model -> Sub Msg
-subscriptions _ = Sub.none
-
-init = ({coords = (20, 0)}, Cmd.none)
+decodeOffset : Decoder (Int, Int)
+decodeOffset =
+  (object2 (,) ("offsetX" := int) ("offsetY" := int))
 
 onClickPosition : Attribute Msg
 onClickPosition =
-  on "click" (succeed (Click (50, 50)))
+  on "mousemove" (map Click decodeOffset)
 
 view : Model -> Html Msg
 view model =
@@ -41,6 +38,7 @@ view model =
       onClickPosition
     ] [
       div [style [
+        ("pointer-events", "none"),
         ("position", "absolute"),
         ("left", toString x ++ "px"),
         ("top", toString y ++ "px")
@@ -52,3 +50,6 @@ update msg model =
   case msg of
     Click coords ->
       ({model | coords = coords}, Cmd.none)
+
+subscriptions : Model -> Sub Msg
+subscriptions _ = Sub.none
