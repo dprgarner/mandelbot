@@ -4,8 +4,8 @@ import Html.Attributes exposing (style)
 import Html.Events exposing (on)
 import Json.Decode exposing ((:=), Decoder, int, map, object2)
 
-type alias Model = {coords : (Int, Int)}
-type Msg = Click (Int, Int)
+type alias Model = {mouseCoords : (Int, Int)}
+type Msg = Move (Int, Int)
 
 --
 -- Setup
@@ -20,11 +20,23 @@ main =
   }
 
 init : (Model, Cmd Msg)
-init = ({coords = (0, 0)}, Cmd.none)
+init = ({mouseCoords = (0, 0)}, Cmd.none)
 
 --
 -- View
 --
+
+viewWidth : Int
+viewWidth = 300
+
+viewHeight : Int
+viewHeight = 300
+
+zoomWidth : Int
+zoomWidth = 150
+
+zoomHeight : Int
+zoomHeight = 150
 
 decodeOffset : Decoder (Int, Int)
 decodeOffset =
@@ -32,27 +44,46 @@ decodeOffset =
 
 onClickPosition : Attribute Msg
 onClickPosition =
-  on "mousemove" (map Click decodeOffset)
+  on "mousemove" (map Move decodeOffset)
+
+topLeftCoords : (Int, Int) -> (Int, Int)
+topLeftCoords (x, y)
+  = (max (x - zoomWidth // 2) 0, max (y - zoomHeight // 2) 0)
+
+bottomRightCoords : (Int, Int) -> (Int, Int)
+bottomRightCoords (x, y)
+  = (min (x + zoomWidth // 2) viewWidth, min (y + zoomHeight // 2) viewHeight)
+
+px : Int -> String
+px i = toString i ++ "px"
 
 view : Model -> Html Msg
 view model =
   let
-    (x,y) = model.coords
+    (topX, topY) = topLeftCoords model.mouseCoords
+    (bottomX, bottomY) = bottomRightCoords model.mouseCoords
+    w = bottomX - topX
+    h = bottomY - topY
   in
     div [
       style [
         ("background-color", "red"),
-        ("width", "200px"),
-        ("height", "200px")
+        ("border", "1px solid black"),
+        --("cursor", "none"),
+        ("width", px viewWidth),
+        ("height", px viewHeight)
       ],
       onClickPosition
     ] [
       div [style [
-        ("pointer-events", "none"),
         ("position", "absolute"),
-        ("left", toString x ++ "px"),
-        ("top", toString y ++ "px")
-      ]] [ text "x"]
+        ("left", px topX),
+        ("top", px topY),
+        ("width", px w),
+        ("height", px h),
+        ("pointer-events", "none"),
+        ("border", "1px solid black")
+      ]] []
     ]
 
 --
@@ -62,8 +93,8 @@ view model =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Click coords ->
-      ({model | coords = coords}, Cmd.none)
+    Move coords ->
+      ({model | mouseCoords = coords}, Cmd.none)
 
 --
 -- Subscriptions
