@@ -58,8 +58,6 @@ function api (req, res) {
   y = parseFloat(y);
   scale = parseFloat(scale);
 
-  // Eg: // /?cap=256&startX=-0.738531&startY=0.24&scale=0.00001
-
   res.writeHead(200, {'Content-Type': 'image/png'});
   createPng(width, height, x, y, scale, cap).pipe(res);
 }
