@@ -4,7 +4,7 @@ import Html.Attributes exposing (style)
 import Html.Events exposing (on)
 import Json.Decode exposing ((:=), Decoder, int, map, object2)
 
-type alias Model = {mouseCoords : (Int, Int)}
+type alias Model = {zoomCoords : (Int, Int)}
 type Msg = Move (Int, Int)
 
 --
@@ -20,7 +20,7 @@ main =
   }
 
 init : (Model, Cmd Msg)
-init = ({mouseCoords = (0, 0)}, Cmd.none)
+init = ({zoomCoords = (0, 0)}, Cmd.none)
 
 --
 -- View
@@ -42,8 +42,8 @@ decodeOffset : Decoder (Int, Int)
 decodeOffset =
   (object2 (,) ("offsetX" := int) ("offsetY" := int))
 
-onClickPosition : Attribute Msg
-onClickPosition =
+onMovePosition : Attribute Msg
+onMovePosition =
   on "mousemove" (map Move decodeOffset)
 
 topLeftCoords : (Int, Int) -> (Int, Int)
@@ -60,8 +60,8 @@ px i = toString i ++ "px"
 view : Model -> Html Msg
 view model =
   let
-    (topX, topY) = topLeftCoords model.mouseCoords
-    (bottomX, bottomY) = bottomRightCoords model.mouseCoords
+    (topX, topY) = topLeftCoords model.zoomCoords
+    (bottomX, bottomY) = bottomRightCoords model.zoomCoords
     w = bottomX - topX
     h = bottomY - topY
   in
@@ -73,7 +73,7 @@ view model =
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
-      onClickPosition
+      onMovePosition
     ] [
       div [style [
         ("position", "absolute"),
@@ -94,7 +94,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Move coords ->
-      ({model | mouseCoords = coords}, Cmd.none)
+      ({model | zoomCoords = coords}, Cmd.none)
 
 --
 -- Subscriptions
