@@ -6,7 +6,8 @@ import Json.Decode exposing ((:=), Decoder, int, map, object2)
 
 type alias Model = {
   hoverCoords : (Int, Int),
-  chosenCoords : (Int, Int)
+  center : (Float, Float),
+  scale : Float
 }
 type Msg = Move (Int, Int) | Click
 
@@ -24,23 +25,26 @@ main =
 
 init : (Model, Cmd Msg)
 init =
-  ({hoverCoords = (0, 0), chosenCoords = (50, 50)}, Cmd.none)
+  ({hoverCoords = (0, 0), center = (0, 0), scale = 1}, Cmd.none)
+
+zoomFactor : Float
+zoomFactor = 2
+
+viewWidth : Int
+viewWidth = 512
+
+viewHeight : Int
+viewHeight = 512
 
 --
 -- View
 --
 
-viewWidth : Int
-viewWidth = 300
-
-viewHeight : Int
-viewHeight = 300
-
 zoomWidth : Int
-zoomWidth = 150
+zoomWidth = round (toFloat viewWidth / zoomFactor)
 
 zoomHeight : Int
-zoomHeight = 150
+zoomHeight = round (toFloat viewHeight / zoomFactor)
 
 decodeOffset : Decoder (Int, Int)
 decodeOffset =
@@ -92,8 +96,8 @@ viewBox model =
 viewInfo : Model -> Html Msg
 viewInfo model =
   let
-    (cX, cY) = model.chosenCoords
     (hX, hY) = model.hoverCoords
+    (cX, cY) = model.center
   in
     div [style [
       ("position", "absolute"),
@@ -102,8 +106,9 @@ viewInfo model =
       ("width", px zoomWidth),
       ("height", px zoomHeight)
     ]] [
-      div [] [text ("clicked: (" ++ toString cX ++ "," ++ toString cY ++ ")")],
-      div [] [text ("hovered: (" ++ toString hX ++ "," ++ toString hY ++ ")")]
+      div [] [text ("hovered: (" ++ toString hX ++ "," ++ toString hY ++ ")")],
+      div [] [text ("center: (" ++ toString cX ++ "," ++ toString cY ++ ")")],
+      div [] [text ("scale: " ++ toString model.scale)]
     ]
 
 view : Model -> Html Msg
@@ -114,13 +119,23 @@ view model =
 -- Update
 --
 
+toComplexSpace : Model -> (Float, Float)
+toComplexSpace model =
+  let
+    (nX, nY) = boundedCoords model.hoverCoords
+    (cX, cY) = model.center
+    s = model.scale
+  in
+    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
+
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Move coords ->
       ({model | hoverCoords = coords}, Cmd.none)
     Click ->
-      ({model | chosenCoords = boundedCoords model.hoverCoords}, Cmd.none)
+      ({model | center = toComplexSpace model, scale = model.scale / zoomFactor}, Cmd.none)
 
 --
 -- Subscriptions
