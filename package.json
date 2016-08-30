@@ -2,14 +2,15 @@
   "name": "bmp",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "elm-make viewer.elm --output elm.js && node main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "elm": "^0.17.1",
     "pngjs": "^3.0.0",
     "qs": "^6.2.1",
     "underscore": "^1.8.3"

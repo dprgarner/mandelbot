@@ -25,7 +25,7 @@ main =
 
 init : (Model, Cmd Msg)
 init =
-  ({hoverCoords = (0, 0), center = (0, 0), scale = 1}, Cmd.none)
+  ({hoverCoords = (0, 0), center = (-0.5, 0), scale = 1/128}, Cmd.none)
 
 zoomFactor : Float
 zoomFactor = 2
@@ -65,6 +65,20 @@ boundedCoords (x, y) =
 px : Int -> String
 px i = toString i ++ "px"
 
+getUrl : Model -> String
+getUrl model =
+  let
+    (x,y) = model.center
+    cap = 50
+  in
+    "/api/?"
+    ++ "&width=" ++ toString viewWidth
+    ++ "&height=" ++ toString viewHeight
+    ++ "&x=" ++ toString x
+    ++ "&y=" ++ toString y
+    ++ "&cap=" ++ toString cap
+    ++ "&scale=" ++ toString model.scale
+
 viewBox : Model -> Html Msg
 viewBox model =
   let
@@ -73,7 +87,7 @@ viewBox model =
   in
     div [
       style [
-        ("background-color", "red"),
+        ("background-image", "url(\"" ++ getUrl model ++ "\")"),
         ("border", "1px solid black"),
         ("cursor", "pointer"),
         ("width", px viewWidth),
@@ -101,14 +115,13 @@ viewInfo model =
   in
     div [style [
       ("position", "absolute"),
-      ("left", px 50),
-      ("top", px (viewHeight + 50)),
+      ("left", px (viewWidth + 50)),
+      ("top", px 50),
       ("width", px zoomWidth),
       ("height", px zoomHeight)
     ]] [
-      div [] [text ("hovered: (" ++ toString hX ++ "," ++ toString hY ++ ")")],
-      div [] [text ("center: (" ++ toString cX ++ "," ++ toString cY ++ ")")],
-      div [] [text ("scale: " ++ toString model.scale)]
+      div [] [text ("center: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
+      div [] [text ("scale: 1px = " ++ toString model.scale)]
     ]
 
 view : Model -> Html Msg

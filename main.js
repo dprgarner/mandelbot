@@ -73,6 +73,11 @@ function api (req, res) {
 http.createServer((req, res) => {
   if (req.url.indexOf('/api') === 0) return api(req, res);
 
+  if (req.url.indexOf('/elm.js') === 0) {
+    res.writeHead(200, {'Content-Type': 'text/javascript'});
+    return fs.createReadStream('./elm.js').pipe(res);
+  }
+
   res.writeHead(200, {'Content-Type': 'text/html'});
   fs.createReadStream('./index.html').pipe(res);
 }).listen(80);
