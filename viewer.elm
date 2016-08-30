@@ -12,7 +12,7 @@ type alias Model = {
   level : Int,
   depth : Int
 }
-type Msg = Move (Int, Int) | Click | Setdepth Int | RightClick
+type Msg = MoveZoom (Int, Int) | ZoomIn | SetDepth Int | ZoomOut
 
 --
 -- Setup
@@ -110,9 +110,9 @@ viewBox model =
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
-      on "mousemove" (Json.map Move decodeOffset),
-      onWithOptions "contextmenu" (Options True True) (Json.succeed RightClick),
-      onClick Click
+      on "mousemove" (Json.map MoveZoom decodeOffset),
+      onWithOptions "contextmenu" (Options True True) (Json.succeed ZoomOut),
+      onClick ZoomIn
     ] [
       div [Attr.style [
         ("position", "absolute"),
@@ -139,7 +139,7 @@ viewSlider model =
       Attr.max "2000",
       Attr.step "25",
       Attr.value (toString model.depth),
-      on "change" (Json.map Setdepth decodeRangeValue)
+      on "change" (Json.map SetDepth decodeRangeValue)
     ] []
   ]
 
@@ -180,13 +180,13 @@ toComplexSpace model =
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Move coords ->
+    MoveZoom coords ->
       ({model | hoverCoords = coords}, Cmd.none)
-    Click ->
-      ({model | center = toComplexSpace model, level = model.level + 1}, Cmd.none)
-    Setdepth depth ->
+    SetDepth depth ->
       ({model | depth = depth}, Cmd.none)
-    RightClick ->
+    ZoomIn ->
+      ({model | center = toComplexSpace model, level = model.level + 1}, Cmd.none)
+    ZoomOut ->
       ({model | level = model.level - 1}, Cmd.none)
 
 --
