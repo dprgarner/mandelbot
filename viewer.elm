@@ -1,7 +1,7 @@
 import Html exposing (Attribute, div, Html, input, text)
 import Html.App exposing (program)
 import Html.Attributes as Attr
-import Html.Events exposing (on, onClick)
+import Html.Events exposing (on, onClick, onWithOptions, Options)
 import Json.Decode exposing ((:=), Decoder)
 import Json.Decode as Json
 import String exposing (toInt)
@@ -12,7 +12,7 @@ type alias Model = {
   level : Int,
   depth : Int
 }
-type Msg = Move (Int, Int) | Click | Setdepth Int
+type Msg = Move (Int, Int) | Click | Setdepth Int | RightClick
 
 --
 -- Setup
@@ -111,6 +111,7 @@ viewBox model =
         ("height", px viewHeight)
       ],
       on "mousemove" (Json.map Move decodeOffset),
+      onWithOptions "contextmenu" (Options True True) (Json.succeed RightClick),
       onClick Click
     ] [
       div [Attr.style [
@@ -185,6 +186,8 @@ update msg model =
       ({model | center = toComplexSpace model, level = model.level + 1}, Cmd.none)
     Setdepth depth ->
       ({model | depth = depth}, Cmd.none)
+    RightClick ->
+      ({model | level = model.level - 1}, Cmd.none)
 
 --
 -- Subscriptions
