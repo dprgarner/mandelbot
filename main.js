@@ -9,6 +9,8 @@ const qs = require('qs');
 
 const mandelbrot = require('./mandelbrot');
 
+const PORT = 80;
+
 function createPng(params) {
   let startTime = Date.now();
   let set = mandelbrot(params);
@@ -80,4 +82,6 @@ http.createServer((req, res) => {
 
   res.writeHead(200, {'Content-Type': 'text/html'});
   fs.createReadStream('./index.html').pipe(res);
-}).listen(80);
+}).listen(PORT);
+
+console.log(`Server listening on port ${PORT}`)
