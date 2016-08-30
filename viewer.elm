@@ -10,9 +10,9 @@ type alias Model = {
   hoverCoords : (Int, Int),
   center : (Float, Float),
   level : Int,
-  cap: Int
+  depth : Int
 }
-type Msg = Move (Int, Int) | Click | SetCap Int
+type Msg = Move (Int, Int) | Click | Setdepth Int
 
 --
 -- Setup
@@ -50,7 +50,7 @@ main =
 
 init : (Model, Cmd Msg)
 init =
-  ({hoverCoords = (0, 0), center = (-0.5, 0), level = 1, cap=100}, Cmd.none)
+  ({hoverCoords = (0, 0), center = (-0.5, 0), level = 1, depth=100}, Cmd.none)
 
 --
 -- View
@@ -92,7 +92,7 @@ getUrl model =
     ++ "&height=" ++ toString viewHeight
     ++ "&x=" ++ toString x
     ++ "&y=" ++ toString y
-    ++ "&cap=" ++ toString model.cap
+    ++ "&depth=" ++ toString model.depth
     ++ "&scale=" ++ toString (getScale model.level)
 
 viewBox : Model -> Html Msg
@@ -131,14 +131,14 @@ viewSlider model =
       ("left", px (viewWidth + 50)),
       ("width", px viewWidth)
   ]] [
-    div [] [text ("Cap: " ++ toString model.cap)],
+    div [] [text ("Depth (# of iterations): " ++ toString model.depth)],
     input [
       Attr.type' "range",
       Attr.min "25",
       Attr.max "2000",
       Attr.step "25",
-      Attr.value (toString model.cap),
-      on "change" (Json.map SetCap decodeRangeValue)
+      Attr.value (toString model.depth),
+      on "change" (Json.map Setdepth decodeRangeValue)
     ] []
   ]
 
@@ -183,8 +183,8 @@ update msg model =
       ({model | hoverCoords = coords}, Cmd.none)
     Click ->
       ({model | center = toComplexSpace model, level = model.level + 1}, Cmd.none)
-    SetCap cap ->
-      ({model | cap = cap}, Cmd.none)
+    Setdepth depth ->
+      ({model | depth = depth}, Cmd.none)
 
 --
 -- Subscriptions

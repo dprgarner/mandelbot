@@ -18,7 +18,7 @@ function createPng(params) {
 
   let width = params.width;
   let height = params.height;
-  let cap = params.cap
+  let depth = params.depth
 
   let png = new PNG({
     inputHasAlpha: false,
@@ -27,7 +27,7 @@ function createPng(params) {
     height: height,
   });
 
-  let min = cap;
+  let min = depth;
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
       if (set[y][x] !== -1) 
@@ -41,7 +41,7 @@ function createPng(params) {
         continue;
       }
 
-      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (set[y][x] - min)) / Math.log(cap))));
+      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (set[y][x] - min)) / Math.log(depth))));
       png.data[idx+1] = png.data[idx];
       png.data[idx+2] = 255 - png.data[idx];
     }
@@ -57,13 +57,13 @@ function api (req, res) {
     height: 512,
     x: -0.5,
     y: 0,
-    cap: 100,
+    depth: 100,
     scale: 1/128
   }, qs.parse(req.url.split('?')[1]));
 
   params.width = parseInt(params.width);
   params.height = parseInt(params.height);
-  params.cap = parseInt(params.cap);
+  params.depth = parseInt(params.depth);
   params.x = parseFloat(params.x);
   params.y = parseFloat(params.y);
   params.scale = parseFloat(params.scale);

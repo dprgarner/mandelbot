@@ -1,6 +1,6 @@
 'use strict';
 
-function convergesWithin(cap, x, y) {
+function convergesWithin(depth, x, y) {
   // z -> z^2 + c
   // or: x_0 = x, y_0 = y, c = x_0 + iy_0
   // 
@@ -10,7 +10,7 @@ function convergesWithin(cap, x, y) {
 
   let iterX = x, iterY = y;
   let newX, newY;
-  for (let i = 0; i < cap; i++) {
+  for (let i = 0; i < depth; i++) {
     newX = iterX * iterX - iterY * iterY + x;
     newY = 2 * iterX * iterY + y;
     if (newX * newX + newY * newY > 4) return i;
@@ -26,7 +26,7 @@ module.exports = function (params) {
   let centerX = params.x;
   let centerY = params.y;
   let scale = params.scale;
-  let cap = params.cap;
+  let depth = params.depth;
 
   let set = [];
   let startX = centerX - scale * width / 2;
@@ -34,7 +34,7 @@ module.exports = function (params) {
   for (let y = 0; y < height; y++) {
     set[y] = [];
     for (let x = 0; x < width; x++) {
-      set[y][x] = convergesWithin(cap, startX + scale * x, startY - scale * y);
+      set[y][x] = convergesWithin(depth, startX + scale * x, startY - scale * y);
     }
   }
   return set;
