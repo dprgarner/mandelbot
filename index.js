@@ -51,12 +51,12 @@ function createPng(params) {
 function api (req, res) {
   qs.parse(req.url.split('?')[0]);
   let params = _.extend({}, {
-    width: 600,
-    height: 600,
+    width: 512,
+    height: 512,
     x: -0.5,
     y: 0,
     cap: 100,
-    scale: 1/250
+    scale: 1/128
   }, qs.parse(req.url.split('?')[1]));
 
   params.width = parseInt(params.width);

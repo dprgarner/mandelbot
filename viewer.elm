@@ -5,7 +5,7 @@ import Html.Events exposing (on, onClick)
 import Json.Decode exposing ((:=), Decoder, int, map, object2)
 
 type alias Model = {
-  zoomCoords : (Int, Int),
+  hoverCoords : (Int, Int),
   chosenCoords : (Int, Int)
 }
 type Msg = Move (Int, Int) | Click
@@ -24,7 +24,7 @@ main =
 
 init : (Model, Cmd Msg)
 init =
-  ({zoomCoords = (0, 0), chosenCoords = (50, 50)}, Cmd.none)
+  ({hoverCoords = (0, 0), chosenCoords = (50, 50)}, Cmd.none)
 
 --
 -- View
@@ -64,7 +64,7 @@ px i = toString i ++ "px"
 viewBox : Model -> Html Msg
 viewBox model =
   let
-    (x, y) = boundedCoords model.zoomCoords
+    (x, y) = boundedCoords model.hoverCoords
     (topX, topY) = (x - zoomWidth // 2, y - zoomHeight // 2)
   in
     div [
@@ -89,10 +89,11 @@ viewBox model =
       ]] []
     ]
 
-viewLastClicked : Model -> Html Msg
-viewLastClicked model =
+viewInfo : Model -> Html Msg
+viewInfo model =
   let
-    (x, y) = model.chosenCoords
+    (cX, cY) = model.chosenCoords
+    (hX, hY) = model.hoverCoords
   in
     div [style [
       ("position", "absolute"),
@@ -101,12 +102,13 @@ viewLastClicked model =
       ("width", px zoomWidth),
       ("height", px zoomHeight)
     ]] [
-      text ("(" ++ toString x ++ "," ++ toString y ++ ")")
+      div [] [text ("clicked: (" ++ toString cX ++ "," ++ toString cY ++ ")")],
+      div [] [text ("hovered: (" ++ toString hX ++ "," ++ toString hY ++ ")")]
     ]
 
 view : Model -> Html Msg
 view model =
-  div [] [viewBox model, viewLastClicked model]
+  div [] [viewBox model, viewInfo model]
 
 --
 -- Update
@@ -116,9 +118,9 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Move coords ->
-      ({model | zoomCoords = coords}, Cmd.none)
+      ({model | hoverCoords = coords}, Cmd.none)
     Click ->
-      ({model | chosenCoords = boundedCoords model.zoomCoords}, Cmd.none)
+      ({model | chosenCoords = boundedCoords model.hoverCoords}, Cmd.none)
 
 --
 -- Subscriptions
