@@ -1,3 +1,5 @@
+'use strict';
+
 function convergesWithin(cap, x, y) {
   // z -> z^2 + c
   // or: x_0 = x, y_0 = y, c = x_0 + iy_0
@@ -6,7 +8,8 @@ function convergesWithin(cap, x, y) {
   // = (x_n + iy_n)^2 + x_0 + iy_0
   // = (x_n^2 - y_n^2 + x_0) + i(2*x_n*y_n + y_0)
 
-  let iterX = x, iterY = y; 
+  let iterX = x, iterY = y;
+  let newX, newY;
   for (let i = 0; i < cap; i++) {
     newX = iterX * iterX - iterY * iterY + x;
     newY = 2 * iterX * iterY + y;
@@ -17,8 +20,14 @@ function convergesWithin(cap, x, y) {
   return -1;
 }
 
-module.exports = function (width, height, centerX, centerY, scale, cap) {
-  // scale: how large is a pixel?
+module.exports = function (params) {
+  let width = params.width;
+  let height = params.height;
+  let centerX = params.x;
+  let centerY = params.y;
+  let scale = params.scale;
+  let cap = params.cap;
+
   let set = [];
   let startX = centerX - scale * width / 2;
   let startY = centerY + scale * height / 2;
