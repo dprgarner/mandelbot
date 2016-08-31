@@ -11,14 +11,11 @@ const mandelbrot = require('./mandelbrot');
 
 const PORT = 80;
 
-function createPng(params) {
+function drawMandelbrot(mandelbrot, depth) {
   let startTime = Date.now();
-  let set = mandelbrot(params);
-  console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  let width = params.width;
-  let height = params.height;
-  let depth = params.depth
+  let width = mandelbrot[0].length;
+  let height = mandelbrot.length;
 
   let png = new PNG({
     inputHasAlpha: false,
@@ -30,18 +27,18 @@ function createPng(params) {
   let min = depth;
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
-      if (set[y][x] !== -1) 
-        min = Math.min(min, set[y][x]);
+      if (mandelbrot[y][x] !== -1)
+        min = Math.min(min, mandelbrot[y][x]);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       let idx = (width * y + x) * 3;
-      if (set[y][x] === -1) {
+      if (mandelbrot[y][x] === -1) {
         png.data[idx] = png.data[idx+1] = png.data[idx+2] = 0;
         continue;
       }
 
-      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (set[y][x] - min)) / Math.log(depth))));
+      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (mandelbrot[y][x] - min)) / Math.log(depth))));
       png.data[idx+1] = png.data[idx];
       png.data[idx+2] = 255 - png.data[idx];
     }
@@ -69,7 +66,14 @@ function api (req, res) {
   params.scale = parseFloat(params.scale);
 
   res.writeHead(200, {'Content-Type': 'image/png'});
-  createPng(params).pipe(res);
+
+  let startTime = Date.now();
+  let set = mandelbrot(params);
+  console.log(`Set constructed after ${Date.now() - startTime}ms`);
+
+  startTime = Date.now();
+  drawMandelbrot(set, params.depth).pipe(res);
+  console.log(`Image drawn in ${Date.now() - startTime}ms\n`);
 }
 
 http.createServer((req, res) => {
