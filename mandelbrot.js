@@ -1,5 +1,7 @@
 'use strict';
 
+const Jimp = require('jimp');
+
 function convergesWithin(depth, x, y) {
   // z -> z^2 + c
   // or: x_0 = x, y_0 = y, c = x_0 + iy_0
@@ -20,7 +22,7 @@ function convergesWithin(depth, x, y) {
   return -1;
 }
 
-module.exports = function (params) {
+exports.constructSet = function(params) {
   let width = params.width;
   let height = params.height;
   let centerX = params.x;
@@ -38,4 +40,30 @@ module.exports = function (params) {
     }
   }
   return set;
+}
+
+exports.drawMandelbrot = function(mandelbrot, depth, cb) {
+  let width = mandelbrot[0].length;
+  let height = mandelbrot.length;
+
+  let min = depth;
+  let d = Date.now();
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++)
+      if (mandelbrot[y][x] !== -1)
+        min = Math.min(min, mandelbrot[y][x]);
+
+  var image = new Jimp(width, height, 0x000000ff, function (err, image) {
+    if (err) return console.error(err);
+
+    image.scan(0, 0, width, height, function (x, y, idx) {
+      let iterations = mandelbrot[y][x];
+      if (iterations === -1) return;
+      this.bitmap.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
+      this.bitmap.data[idx+1] = this.bitmap.data[idx];
+      this.bitmap.data[idx+2] = 255 - this.bitmap.data[idx];
+    });
+
+    cb(null, image);
+  });
 }

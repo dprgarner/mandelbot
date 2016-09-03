@@ -5,36 +5,20 @@ const http = require('http');
 const stream = require('stream');
 
 const _  = require('underscore');
-const qs = require('qs');
 const Jimp = require('jimp');
+const qs = require('qs');
 
-const mandelbrot = require('./mandelbrot');
+const constructSet = require('./mandelbrot').constructSet;
+const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 
 const PORT = 80;
 
-function drawMandelbrot(mandelbrot, depth, cb) {
-  let width = mandelbrot[0].length;
-  let height = mandelbrot.length;
-
-  let min = depth;
-  let d = Date.now();
-  for (let y = 0; y < height; y++)
-    for (let x = 0; x < width; x++)
-      if (mandelbrot[y][x] !== -1)
-        min = Math.min(min, mandelbrot[y][x]);
-
-  var image = new Jimp(width, height, 0x000000ff, function (err, image) {
+function pipeImageTo(image, dest) {
+  image.getBuffer(Jimp.MIME_PNG, function (err, buffer) {
     if (err) return console.error(err);
-
-    image.scan(0, 0, width, height, function (x, y, idx) {
-      let iterations = mandelbrot[y][x];
-      if (iterations === -1) return;
-      this.bitmap.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
-      this.bitmap.data[idx+1] = this.bitmap.data[idx];
-      this.bitmap.data[idx+2] = 255 - this.bitmap.data[idx];
-    });
-
-    cb(null, image);
+    var s = new stream.PassThrough();
+    s.end(buffer);
+    s.pipe(dest);
   });
 }
 
@@ -57,23 +41,13 @@ function api (req, res) {
   params.scale = parseFloat(params.scale);
 
   res.writeHead(200, {'Content-Type': 'image/png'});
-
   let startTime = Date.now();
-  let set = mandelbrot(params);
+  let set = constructSet(params);
   console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
   drawMandelbrot(set, params.depth, function (err, image) {
     if (err) return console.error(err);
     pipeImageTo(image, res);
-  });
-}
-
-function pipeImageTo(image, dest) {
-  image.getBuffer(Jimp.MIME_PNG, function (err, buffer) {
-    if (err) return console.error(err);
-    var s = new stream.PassThrough();
-    s.end(buffer);
-    s.pipe(dest);
   });
 }
 
