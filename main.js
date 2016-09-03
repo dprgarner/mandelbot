@@ -2,49 +2,40 @@
 
 const fs = require('fs');
 const http = require('http');
+const stream = require('stream');
 
 const _  = require('underscore');
-const PNG = require('pngjs').PNG;
 const qs = require('qs');
+const Jimp = require('jimp');
 
 const mandelbrot = require('./mandelbrot');
 
 const PORT = 80;
 
-function drawMandelbrot(mandelbrot, depth) {
-  let startTime = Date.now();
-
+function drawMandelbrot(mandelbrot, depth, cb) {
   let width = mandelbrot[0].length;
   let height = mandelbrot.length;
 
-  let png = new PNG({
-    inputHasAlpha: false,
-    deflateLevel: 0,
-    width: width,
-    height: height,
-  });
-
   let min = depth;
+  let d = Date.now();
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
       if (mandelbrot[y][x] !== -1)
         min = Math.min(min, mandelbrot[y][x]);
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      let idx = (width * y + x) * 3;
-      if (mandelbrot[y][x] === -1) {
-        png.data[idx] = png.data[idx+1] = png.data[idx+2] = 0;
-        continue;
-      }
+  var image = new Jimp(width, height, 0x000000ff, function (err, image) {
+    if (err) return console.error(err);
 
-      png.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (mandelbrot[y][x] - min)) / Math.log(depth))));
-      png.data[idx+1] = png.data[idx];
-      png.data[idx+2] = 255 - png.data[idx];
-    }
-  }
+    image.scan(0, 0, width, height, function (x, y, idx) {
+      let iterations = mandelbrot[y][x];
+      if (iterations === -1) return;
+      this.bitmap.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
+      this.bitmap.data[idx+1] = this.bitmap.data[idx];
+      this.bitmap.data[idx+2] = 255 - this.bitmap.data[idx];
+    });
 
-  return png.pack();
+    cb(null, image);
+  });
 }
 
 function api (req, res) {
@@ -55,7 +46,7 @@ function api (req, res) {
     x: -0.5,
     y: 0,
     depth: 100,
-    scale: 1/128
+    scale: 1/128,
   }, qs.parse(req.url.split('?')[1]));
 
   params.width = parseInt(params.width);
@@ -71,9 +62,19 @@ function api (req, res) {
   let set = mandelbrot(params);
   console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  startTime = Date.now();
-  drawMandelbrot(set, params.depth).pipe(res);
-  console.log(`Image drawn in ${Date.now() - startTime}ms\n`);
+  drawMandelbrot(set, params.depth, function (err, image) {
+    if (err) return console.error(err);
+    pipeImageTo(image, res);
+  });
+}
+
+function pipeImageTo(image, dest) {
+  image.getBuffer(Jimp.MIME_PNG, function (err, buffer) {
+    if (err) return console.error(err);
+    var s = new stream.PassThrough();
+    s.end(buffer);
+    s.pipe(dest);
+  });
 }
 
 http.createServer((req, res) => {
