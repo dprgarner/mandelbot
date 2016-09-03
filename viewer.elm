@@ -8,7 +8,7 @@ import String exposing (toInt)
 
 type alias Model = {
   hoverCoords : (Int, Int),
-  center : (Float, Float),
+  centre : (Float, Float),
   level : Int,
   depth : Int
 }
@@ -50,7 +50,7 @@ main =
 
 init : (Model, Cmd Msg)
 init =
-  ({hoverCoords = (0, 0), center = (-0.5, 0), level = 1, depth=100}, Cmd.none)
+  ({hoverCoords = (0, 0), centre = (-0.5, 0), level = 1, depth=100}, Cmd.none)
 
 --
 -- View
@@ -85,7 +85,7 @@ px i = toString i ++ "px"
 getUrl : Model -> String
 getUrl model =
   let
-    (x,y) = model.center
+    (x,y) = model.centre
   in
     "/api/?"
     ++ "&width=" ++ toString viewWidth
@@ -94,6 +94,10 @@ getUrl model =
     ++ "&y=" ++ toString y
     ++ "&depth=" ++ toString model.depth
     ++ "&scale=" ++ toString (getScale model.level)
+
+onRightClick : msg -> Attribute msg
+onRightClick msg =
+  onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
 viewBox : Model -> Html Msg
 viewBox model =
@@ -111,7 +115,7 @@ viewBox model =
         ("height", px viewHeight)
       ],
       on "mousemove" (Json.map MoveZoom decodeOffset),
-      onWithOptions "contextmenu" (Options True True) (Json.succeed ZoomOut),
+      onRightClick ZoomOut,
       onClick ZoomIn
     ] [
       div [Attr.style [
@@ -147,7 +151,7 @@ viewInfo : Model -> Html Msg
 viewInfo model =
   let
     (hX, hY) = model.hoverCoords
-    (cX, cY) = model.center
+    (cX, cY) = model.centre
   in
     div [Attr.style [
       ("position", "absolute"),
@@ -155,7 +159,7 @@ viewInfo model =
       ("top", px 100),
       ("width", px viewWidth)
     ]] [
-      div [] [text ("center: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
+      div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
       div [] [text ("scale: 1px = " ++ toString (getScale model.level))],
       div [] [text ("zoom level: " ++ toString model.level)]
     ]
@@ -168,11 +172,11 @@ view model =
 -- Update
 --
 
-toComplexSpace : Model -> (Float, Float)
-toComplexSpace model =
+getComplexCentre : Model -> (Float, Float)
+getComplexCentre model =
   let
     (nX, nY) = boundedCoords model.hoverCoords
-    (cX, cY) = model.center
+    (cX, cY) = model.centre
     s = getScale model.level
   in
     (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
@@ -185,7 +189,7 @@ update msg model =
     SetDepth depth ->
       ({model | depth = depth}, Cmd.none)
     ZoomIn ->
-      ({model | center = toComplexSpace model, level = model.level + 1}, Cmd.none)
+      ({model | centre = getComplexCentre model, level = model.level + 1}, Cmd.none)
     ZoomOut ->
       ({model | level = model.level - 1}, Cmd.none)
 
