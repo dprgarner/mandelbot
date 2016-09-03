@@ -2,24 +2,21 @@
 
 const Jimp = require('jimp');
 
-function convergesWithin(depth, x, y) {
-  // z -> z^2 + c
-  // or: x_0 = x, y_0 = y, c = x_0 + iy_0
-  // 
-  // x_(n+1) + iy_(n+1) 
-  // = (x_n + iy_n)^2 + x_0 + iy_0
-  // = (x_n^2 - y_n^2 + x_0) + i(2*x_n*y_n + y_0)
+function convergesWithin(depth, cRe, cIm) {
+  // z -> z' = z^2 + c
+  // zRe' + i * zIm'
+  // = (zRe + i * zIm)^2 + cRe + i * cIm
+  // = (zRe^2 - zIm^2 + cRe) + i(2 * zRe * zIm + cIm)
 
-  let iterX = x, iterY = y;
-  let newX, newY;
-  for (let i = 0; i < depth; i++) {
-    newX = iterX * iterX - iterY * iterY + x;
-    newY = 2 * iterX * iterY + y;
-    if (newX * newX + newY * newY > 4) return i;
-    iterX = newX;
-    iterY = newY;
+  let zRe = cRe, zIm = cIm;
+  for (let i = 1; i < depth; i++) {
+    if (zRe * zRe + zIm * zIm > 4) return i;
+    let nextZRe = zRe * zRe - zIm * zIm + cRe;
+    let nextZIm = 2 * zRe * zIm + cIm;
+    zRe = nextZRe;
+    zIm = nextZIm;
   }
-  return -1;
+  return null;
 }
 
 exports.constructSet = function(params) {
@@ -50,7 +47,7 @@ exports.drawMandelbrot = function(mandelbrot, depth, cb) {
   let d = Date.now();
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
-      if (mandelbrot[y][x] !== -1)
+      if (mandelbrot[y][x])
         min = Math.min(min, mandelbrot[y][x]);
 
   var image = new Jimp(width, height, 0x000000ff, function (err, image) {
@@ -58,7 +55,7 @@ exports.drawMandelbrot = function(mandelbrot, depth, cb) {
 
     image.scan(0, 0, width, height, function (x, y, idx) {
       let iterations = mandelbrot[y][x];
-      if (iterations === -1) return;
+      if (!iterations) return;
       this.bitmap.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
       this.bitmap.data[idx+1] = this.bitmap.data[idx];
       this.bitmap.data[idx+2] = 255 - this.bitmap.data[idx];
