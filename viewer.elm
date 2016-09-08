@@ -1,4 +1,4 @@
-import Html exposing (Attribute, div, Html, input, text)
+import Html exposing (Attribute, div, Html, img, input, text)
 import Html.App exposing (program)
 import Html.Attributes as Attr
 import Html.Events exposing (on, onClick, onWithOptions, Options)
@@ -10,9 +10,10 @@ type alias Model = {
   hoverCoords : (Int, Int),
   centre : (Float, Float),
   level : Int,
-  depth : Int
+  depth : Int,
+  loaded : Bool
 }
-type Msg = MoveZoom (Int, Int) | ZoomIn | SetDepth Int | ZoomOut
+type Msg = MoveZoom (Int, Int) | ZoomIn | SetDepth Int | ZoomOut | Loaded
 
 --
 -- Setup
@@ -53,7 +54,8 @@ init = ({
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   centre = (-0.5, 0),
   level = 1,
-  depth=100
+  depth = 100,
+  loaded = False
   }, Cmd.none)
 
 --
@@ -124,12 +126,6 @@ viewBox model =
       onClick ZoomIn
     ] [
       div [Attr.style [
-        ("background-image", "url(\"" ++ getUrl model ++ "\")"),
-        ("position", "absolute"),
-        ("width", px viewWidth),
-        ("height", px viewHeight)
-      ]] [],
-      div [Attr.style [
         ("position", "absolute"),
         ("left", px topX),
         ("top", px topY),
@@ -137,7 +133,12 @@ viewBox model =
         ("height", px zoomHeight),
         ("pointer-events", "none"),
         ("border", "1px solid black")
-      ]] []
+      ]] [],
+      img [
+        Attr.src (getUrl model),
+        --Attr.style (if model.loaded then [] else [("display", "none")]),
+        on "load" (Json.succeed Loaded)
+      ] []
     ]
 
 viewSlider : Model -> Html Msg
@@ -159,11 +160,17 @@ viewInfo model =
   let
     (hX, hY) = model.hoverCoords
     (cX, cY) = model.centre
+    isLoaded =
+      if model.loaded then
+        "Yes"
+      else
+        "No"
   in
     div [] [
       div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
       div [] [text ("scale: 1px = " ++ toString (getScale model.level))],
-      div [] [text ("zoom level: " ++ toString model.level)]
+      div [] [text ("zoom level: " ++ toString model.level)],
+      div [] [text ("loaded:" ++ isLoaded)]
     ]
 
 view : Model -> Html Msg
@@ -200,9 +207,11 @@ update msg model =
     SetDepth depth ->
       ({model | depth = depth}, Cmd.none)
     ZoomIn ->
-      ({model | centre = getComplexCentre model, level = model.level + 1}, Cmd.none)
+      ({model | centre = getComplexCentre model, level = model.level + 1, loaded = False}, Cmd.none)
     ZoomOut ->
-      ({model | level = model.level - 1}, Cmd.none)
+      ({model | level = model.level - 1, loaded = False}, Cmd.none)
+    Loaded ->
+      ({model | loaded = True}, Cmd.none)
 
 --
 -- Subscriptions
