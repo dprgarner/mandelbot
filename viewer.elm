@@ -49,8 +49,12 @@ main =
   }
 
 init : (Model, Cmd Msg)
-init =
-  ({hoverCoords = (0, 0), centre = (-0.5, 0), level = 1, depth=100}, Cmd.none)
+init = ({
+  hoverCoords = (viewWidth // 2, viewHeight // 2),
+  centre = (-0.5, 0),
+  level = 1,
+  depth=100
+  }, Cmd.none)
 
 --
 -- View
@@ -107,10 +111,11 @@ viewBox model =
   in
     div [
       Attr.style [
-        ("background-image", "url(\"" ++ getUrl model ++ "\")"),
         ("border", "1px solid black"),
         ("cursor", "pointer"),
-        ("position", "absolute"),
+        ("display", "inline-block"),
+        ("float", "left"),
+        ("position", "relative"),
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
@@ -118,6 +123,12 @@ viewBox model =
       onRightClick ZoomOut,
       onClick ZoomIn
     ] [
+      div [Attr.style [
+        ("background-image", "url(\"" ++ getUrl model ++ "\")"),
+        ("position", "absolute"),
+        ("width", px viewWidth),
+        ("height", px viewHeight)
+      ]] [],
       div [Attr.style [
         ("position", "absolute"),
         ("left", px topX),
@@ -131,11 +142,7 @@ viewBox model =
 
 viewSlider : Model -> Html Msg
 viewSlider model =
-  div [Attr.style [
-      ("position", "absolute"),
-      ("left", px (viewWidth + 50)),
-      ("width", px viewWidth)
-  ]] [
+  div [] [
     div [] [text ("Depth (# of iterations): " ++ toString model.depth)],
     input [
       Attr.type' "range",
@@ -153,12 +160,7 @@ viewInfo model =
     (hX, hY) = model.hoverCoords
     (cX, cY) = model.centre
   in
-    div [Attr.style [
-      ("position", "absolute"),
-      ("left", px (viewWidth + 50)),
-      ("top", px 100),
-      ("width", px viewWidth)
-    ]] [
+    div [] [
       div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
       div [] [text ("scale: 1px = " ++ toString (getScale model.level))],
       div [] [text ("zoom level: " ++ toString model.level)]
@@ -166,7 +168,16 @@ viewInfo model =
 
 view : Model -> Html Msg
 view model =
-  div [] [viewBox model, viewSlider model, viewInfo model]
+  div [] [
+    viewBox model,
+    div [Attr.style [
+      ("display", "inline-block"),
+      ("padding-left", px 50)
+    ]] [
+      viewSlider model,
+      viewInfo model
+    ]
+  ]
 
 --
 -- Update
