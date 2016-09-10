@@ -27,16 +27,16 @@ type Msg = MoveZoom (Int, Int)
 -- Setup
 --
 
-zoomFactor : Int
-zoomFactor = 3
-
-viewWidth : Int
+viewWidth : Int -- Width of the view box in pixels
 viewWidth = 512
 
-viewHeight : Int
+viewHeight : Int -- Height of the view box in pixels
 viewHeight = 512
 
-initialScale : Float
+zoomFactor : Int -- Relative size of the zoom box to the viewport
+zoomFactor = 2
+
+initialScale : Float -- Initial ratio of pixel space to complex space
 initialScale = 1/256
 
 getScale : Int -> Float
@@ -59,7 +59,6 @@ main =
 
 initialSnapshot : Snapshot
 initialSnapshot = {
-  --centre = (-0.5, 0),
   topLeft = (-1.5, 1),
   level = 0,
   depth = 100
@@ -90,9 +89,6 @@ boundedCoords (x, y) =
       |> max (zoomHeight // 2)
   in
     (newX, newY)
-
-setDepth : Int -> Snapshot -> Snapshot
-setDepth depth snapshot = {snapshot | depth = depth}
 
 zoomIn : (Int, Int) -> Snapshot -> Snapshot
 zoomIn (boundedMouseX, boundedMouseY) snapshot =
@@ -127,8 +123,10 @@ update msg model =
     MoveZoom coords ->
       ({model | hoverCoords = coords}, Cmd.none)
     SetDepth depth ->
-      let snapshot = setDepth depth model.snapshot in
-      ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
+      let
+        snapshot = (\snapshot -> {snapshot | depth = depth}) model.snapshot
+      in
+        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
     ZoomIn ->
       let
         snapshot = zoomIn (boundedCoords model.hoverCoords) model.snapshot
@@ -139,7 +137,6 @@ update msg model =
         snapshot = zoomOut (boundedCoords model.hoverCoords) model.snapshot
       in
         ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
-
 
 --
 -- View
@@ -172,26 +169,23 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
---topLeftCornerOffsetHelper : Int -> Int -> Int
---topLeftCornerOffsetHelper boxDimension centreCoord =
---  centreCoord + boxDimension * (zoomFactor - 1) // (2 * zoomFactor)
-
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
   List.map (\snapshot ->
     let
       dlevel = model.snapshot.level - snapshot.level
       resizeFactor = zoomFactor ^ dlevel
-      --(mX, mY) = model.snapshot.centre
-      --(sX, sY) = snapshot.centre
+      (mX, mY) = model.snapshot.topLeft
+      (sX, sY) = snapshot.topLeft
+      scale = getScale model.snapshot.level
     in
       img [
         Attr.src (getUrl snapshot),
         Attr.style [
           ("position", "absolute"),
           ("pointer-events", "none"),
-          --("left", px -(topLeftCornerOffsetHelper viewWidth cX)),
-          --("top", px -(topLeftCornerOffsetHelper viewHeight cY)),
+          ("left", px <| round <| (sX - mX) / scale),
+          ("top", px <| round <| (mY - sY) / scale),
           ("width", px (viewWidth * resizeFactor)),
           ("height", px (viewHeight * resizeFactor))
         ]
@@ -212,7 +206,7 @@ viewZoomBox model =
         ("display", "inline-block"),
         ("float", "left"),
         ("position", "relative"),
-        ("overflow", "hidden"),
+        --("overflow", "hidden"),
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
@@ -252,33 +246,41 @@ viewSlider depth =
     ] []
   ]
 
-viewInfo : Snapshot -> Html Msg
-viewInfo snapshot =
+viewSnapshotInfo : Snapshot -> Html Msg
+viewSnapshotInfo snapshot =
   let
     (tX, tY) = snapshot.topLeft
   in
     div [Attr.style [("border-bottom", "1px solid black")]] [
       div [] [text ("topLeft: " ++ toString tX ++ " + " ++ toString tY ++ "i")],
-      --div [] [text ("scale: 1px = " ++ toString (getScale snapshot.level))],
       div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
+
+viewInfo : Model -> Html Msg
+viewInfo model =
+  div [Attr.style [
+    ("display", "inline-block"),
+    ("float", "right"),
+    ("border-left", "1px solid black"),
+    ("height", "100%"),
+    ("background-color", "white"),
+    ("z-index", "1000")
+  ]] [
+    viewSlider model.snapshot.depth,
+    viewSnapshotInfo model.snapshot,
+    div [Attr.style [
+      ("display", "inline-block"),
+      ("padding-left", px 50)
+    ]] (List.map viewSnapshotInfo model.slides)
+  ]
 
 view : Model -> Html Msg
 view model =
   div [Attr.style [
+      ("width", "100vw"),
       ("display", "inline-block"),
-      ("padding", "250px 250px")
+      ("height", "100vh")
     ]] [
-    viewZoomBox model,
-    div [Attr.style [
-      ("display", "inline-block"),
-      ("padding-left", px 50)
-    ]] [
-      viewSlider model.snapshot.depth,
-      viewInfo model.snapshot,
-      div [Attr.style [
-        ("display", "inline-block"),
-        ("padding-left", px 200)
-      ]] (List.map viewInfo model.slides)
-    ]
+    viewInfo model,
+    viewZoomBox model
   ]
