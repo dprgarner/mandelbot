@@ -8,6 +8,10 @@ import String exposing (toInt)
 
 type alias Model = {
   hoverCoords : (Int, Int),
+  snapshot : Snapshot
+}
+
+type alias Snapshot = {
   centre : (Float, Float),
   level : Int,
   depth : Int
@@ -55,9 +59,11 @@ main =
 init : (Model, Cmd Msg)
 init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
-  centre = (-0.5, 0),
-  level = 0,
-  depth = 100
+  snapshot = {
+    centre = (-0.5, 0),
+    level = 0,
+    depth = 100
+    }
   } ! []
 
 subscriptions : Model -> Sub Msg
@@ -65,34 +71,6 @@ subscriptions _ = Sub.none
 
 --
 -- Update
---
-
-getComplexCentre : Model -> (Float, Float)
-getComplexCentre model =
-  let
-    (nX, nY) = boundedCoords model.hoverCoords
-    (cX, cY) = model.centre
-    s = getScale model.level
-  in
-    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-  case msg of
-    MoveZoom coords ->
-      ({model | hoverCoords = coords}, Cmd.none)
-    SetDepth depth ->
-      ({model | depth = depth}, Cmd.none)
-    ZoomIn ->
-      ({model |
-        centre = getComplexCentre model,
-        level = model.level + 1
-       }, Cmd.none)
-    ZoomOut ->
-      ({model | level = model.level - 1}, Cmd.none)
-
---
--- View
 --
 
 boundedCoords : (Int, Int) -> (Int, Int)
@@ -107,21 +85,63 @@ boundedCoords (x, y) =
   in
     (newX, newY)
 
+getComplexCentre : (Int, Int) -> Snapshot -> (Float, Float)
+getComplexCentre hoverCoords snapshot =
+  let
+    (nX, nY) = boundedCoords hoverCoords
+    (cX, cY) = snapshot.centre
+    s = getScale snapshot.level
+  in
+    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
+
+setDepth : Int -> Snapshot -> Snapshot
+setDepth depth snapshot = {snapshot | depth = depth}
+
+zoomTo : (Float, Float) -> Int -> Snapshot -> Snapshot
+zoomTo centre dlevel snapshot = {snapshot |
+  centre = centre,
+  level = snapshot.level + dlevel
+  }
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    MoveZoom coords ->
+      ({model | hoverCoords = coords}, Cmd.none)
+    SetDepth depth ->
+      ({model | snapshot = setDepth depth model.snapshot}, Cmd.none)
+    ZoomIn ->
+      let
+        newCentre = getComplexCentre model.hoverCoords model.snapshot
+        snapshot = zoomTo newCentre 1 model.snapshot
+      in
+        ({model | snapshot = snapshot}, Cmd.none)
+    ZoomOut ->
+      let
+        newCentre = getComplexCentre model.hoverCoords model.snapshot
+        snapshot = zoomTo newCentre (-1) model.snapshot
+      in
+        ({model | snapshot = snapshot}, Cmd.none)
+
+--
+-- View
+--
+
 px : Int -> String
 px i = toString i ++ "px"
 
-getUrl : Model -> String
-getUrl model =
+getUrl : Snapshot -> String
+getUrl snapshot =
   let
-    (x,y) = model.centre
+    (x,y) = snapshot.centre
   in
     "/api/?"
     ++ "&width=" ++ toString viewWidth
     ++ "&height=" ++ toString viewHeight
     ++ "&x=" ++ toString x
     ++ "&y=" ++ toString y
-    ++ "&depth=" ++ toString model.depth
-    ++ "&scale=" ++ toString (getScale model.level)
+    ++ "&depth=" ++ toString snapshot.depth
+    ++ "&scale=" ++ toString (getScale snapshot.level)
 
 decodeOffset : Decoder (Int, Int)
 decodeOffset =
@@ -135,7 +155,7 @@ viewSlides : Model -> List (Html Msg)
 viewSlides model =
   [
     img [
-      Attr.src (getUrl model)
+      Attr.src (getUrl model.snapshot)
       --on "load" (Json.succeed Loaded)
     ] []
   ]
@@ -178,30 +198,29 @@ decodeRangeValue =
   in
     Json.customDecoder decodeStringValue toInt
 
-viewSlider : Model -> Html Msg
-viewSlider model =
+viewSlider : Int -> Html Msg
+viewSlider depth =
   div [] [
-    div [] [text ("Depth (# of iterations): " ++ toString model.depth)],
+    div [] [text ("Depth (# of iterations): " ++ toString depth)],
     input [
       Attr.type' "range",
       Attr.min "25",
       Attr.max "2000",
       Attr.step "25",
-      Attr.value (toString model.depth),
+      Attr.value (toString depth),
       on "change" (Json.map SetDepth decodeRangeValue)
     ] []
   ]
 
-viewInfo : Model -> Html Msg
-viewInfo model =
+viewInfo : Snapshot -> Html Msg
+viewInfo snapshot =
   let
-    (hX, hY) = model.hoverCoords
-    (cX, cY) = model.centre
+    (cX, cY) = snapshot.centre
   in
     div [] [
       div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
-      div [] [text ("scale: 1px = " ++ toString (getScale model.level))],
-      div [] [text ("zoom level: " ++ toString model.level)]
+      div [] [text ("scale: 1px = " ++ toString (getScale snapshot.level))],
+      div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
 
 view : Model -> Html Msg
@@ -212,7 +231,7 @@ view model =
       ("display", "inline-block"),
       ("padding-left", px 50)
     ]] [
-      viewSlider model,
-      viewInfo model
+      viewSlider model.snapshot.depth,
+      viewInfo model.snapshot
     ]
   ]
