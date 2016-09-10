@@ -55,13 +55,13 @@ main =
   }
 
 init : (Model, Cmd Msg)
-init = ({
+init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   centre = (-0.5, 0),
   level = 0,
   depth = 100,
   loaded = False
-  }, Cmd.none)
+  } ! []
 
 subscriptions : Model -> Sub Msg
 subscriptions _ = Sub.none
@@ -104,17 +104,6 @@ update msg model =
 -- View
 --
 
-decodeOffset : Decoder (Int, Int)
-decodeOffset =
-  (Json.object2 (,) ("offsetX" := Json.int) ("offsetY" := Json.int))
-
-decodeRangeValue : Decoder Int
-decodeRangeValue =
-  let
-    decodeStringValue = Json.at ["currentTarget", "value"] Json.string
-  in
-    Json.customDecoder decodeStringValue toInt
-
 boundedCoords : (Int, Int) -> (Int, Int)
 boundedCoords (x, y) =
   let
@@ -143,6 +132,10 @@ getUrl model =
     ++ "&depth=" ++ toString model.depth
     ++ "&scale=" ++ toString (getScale model.level)
 
+decodeOffset : Decoder (Int, Int)
+decodeOffset =
+  (Json.object2 (,) ("offsetX" := Json.int) ("offsetY" := Json.int))
+
 onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
@@ -164,8 +157,8 @@ viewBox model =
         ("height", px viewHeight)
       ],
       on "mousemove" (Json.map MoveZoom decodeOffset),
-      onRightClick ZoomOut,
-      onClick ZoomIn
+      onClick ZoomIn,
+      onRightClick ZoomOut
     ] [
       div [Attr.style [
         ("position", "absolute"),
@@ -178,10 +171,17 @@ viewBox model =
       ]] [],
       img [
         Attr.src (getUrl model),
-        --Attr.style (if model.loaded then [] else [("display", "none")]),
+        --Attr.style (if model.loaded then [] else [("background-color", "pink")]),
         on "load" (Json.succeed Loaded)
       ] []
     ]
+
+decodeRangeValue : Decoder Int
+decodeRangeValue =
+  let
+    decodeStringValue = Json.at ["currentTarget", "value"] Json.string
+  in
+    Json.customDecoder decodeStringValue toInt
 
 viewSlider : Model -> Html Msg
 viewSlider model =
