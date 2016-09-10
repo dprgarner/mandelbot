@@ -13,9 +13,9 @@ type alias Model = {
 }
 
 type alias Snapshot = {
-  centre : (Float, Float),
-  level : Int,
-  depth : Int
+  topLeft : (Float, Float), -- Coordinates of top left in complex space
+  level : Int,              -- Zoom level
+  depth : Int               -- Number of iterations performed per pixel
 }
 
 type Msg = MoveZoom (Int, Int)
@@ -59,7 +59,8 @@ main =
 
 initialSnapshot : Snapshot
 initialSnapshot = {
-  centre = (-0.5, 0),
+  --centre = (-0.5, 0),
+  topLeft = (-1.5, 1),
   level = 0,
   depth = 100
   }
@@ -90,23 +91,35 @@ boundedCoords (x, y) =
   in
     (newX, newY)
 
-getComplexCentre : (Int, Int) -> Snapshot -> (Float, Float)
-getComplexCentre hoverCoords snapshot =
-  let
-    (nX, nY) = boundedCoords hoverCoords
-    (cX, cY) = snapshot.centre
-    s = getScale snapshot.level
-  in
-    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
-
 setDepth : Int -> Snapshot -> Snapshot
 setDepth depth snapshot = {snapshot | depth = depth}
 
-zoomTo : (Float, Float) -> Int -> Snapshot -> Snapshot
-zoomTo centre dlevel snapshot = {snapshot |
-  centre = centre,
-  level = snapshot.level + dlevel
-  }
+zoomIn : (Int, Int) -> Snapshot -> Snapshot
+zoomIn (boundedMouseX, boundedMouseY) snapshot =
+  let
+    (complexX, complexY) = snapshot.topLeft
+    scale = getScale snapshot.level
+    newX = complexX + scale * toFloat (boundedMouseX - zoomWidth // 2)
+    newY = complexY - scale * toFloat (boundedMouseY - zoomHeight // 2)
+  in
+    {snapshot |
+    topLeft = (newX, newY),
+    level = snapshot.level + 1
+    }
+
+zoomOut : (Int, Int) -> Snapshot -> Snapshot
+zoomOut (boundedMouseX, boundedMouseY) snapshot =
+  let
+    (complexX, complexY) = snapshot.topLeft
+    oldScale = getScale snapshot.level
+    newScale = getScale (snapshot.level - 1)
+    newX = complexX + oldScale * toFloat boundedMouseX - toFloat viewWidth * newScale / 2
+    newY = complexY - oldScale * toFloat boundedMouseY + toFloat viewHeight * newScale / 2
+  in
+    {snapshot |
+    topLeft = (newX, newY),
+    level = snapshot.level - 1
+    }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -118,16 +131,15 @@ update msg model =
       ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
     ZoomIn ->
       let
-        newCentre = getComplexCentre model.hoverCoords model.snapshot
-        snapshot = zoomTo newCentre 1 model.snapshot
+        snapshot = zoomIn (boundedCoords model.hoverCoords) model.snapshot
       in
         ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
     ZoomOut ->
       let
-        newCentre = getComplexCentre model.hoverCoords model.snapshot
-        snapshot = zoomTo newCentre (-1) model.snapshot
+        snapshot = zoomOut (boundedCoords model.hoverCoords) model.snapshot
       in
-        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none) 
+        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
+
 
 --
 -- View
@@ -139,7 +151,10 @@ px i = toString i ++ "px"
 getUrl : Snapshot -> String
 getUrl snapshot =
   let
-    (x,y) = snapshot.centre
+    (topX, topY) = snapshot.topLeft
+    scale = getScale snapshot.level
+    x = topX + scale * toFloat viewWidth / 2
+    y = topY - scale * toFloat viewHeight / 2
   in
     "/api/?"
     ++ "&width=" ++ toString viewWidth
@@ -147,7 +162,7 @@ getUrl snapshot =
     ++ "&x=" ++ toString x
     ++ "&y=" ++ toString y
     ++ "&depth=" ++ toString snapshot.depth
-    ++ "&scale=" ++ toString (getScale snapshot.level)
+    ++ "&scale=" ++ toString scale
 
 decodeOffset : Decoder (Int, Int)
 decodeOffset =
@@ -157,9 +172,9 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
-topLeftCornerOffsetHelper : Int -> Int -> Int
-topLeftCornerOffsetHelper boxDimension centreCoord =
-  centreCoord + boxDimension * (zoomFactor - 1) // (2 * zoomFactor)
+--topLeftCornerOffsetHelper : Int -> Int -> Int
+--topLeftCornerOffsetHelper boxDimension centreCoord =
+--  centreCoord + boxDimension * (zoomFactor - 1) // (2 * zoomFactor)
 
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
@@ -167,8 +182,8 @@ viewSlides model =
     let
       dlevel = model.snapshot.level - snapshot.level
       resizeFactor = zoomFactor ^ dlevel
-      (mX, mY) = model.snapshot.centre
-      (sX, sY) = snapshot.centre
+      --(mX, mY) = model.snapshot.centre
+      --(sX, sY) = snapshot.centre
     in
       img [
         Attr.src (getUrl snapshot),
@@ -197,7 +212,7 @@ viewZoomBox model =
         ("display", "inline-block"),
         ("float", "left"),
         ("position", "relative"),
-        --("overflow", "hidden"),
+        ("overflow", "hidden"),
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
@@ -240,10 +255,10 @@ viewSlider depth =
 viewInfo : Snapshot -> Html Msg
 viewInfo snapshot =
   let
-    (cX, cY) = snapshot.centre
+    (tX, tY) = snapshot.topLeft
   in
     div [Attr.style [("border-bottom", "1px solid black")]] [
-      div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
+      div [] [text ("topLeft: " ++ toString tX ++ " + " ++ toString tY ++ "i")],
       --div [] [text ("scale: 1px = " ++ toString (getScale snapshot.level))],
       div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
