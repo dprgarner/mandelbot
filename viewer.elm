@@ -10,15 +10,13 @@ type alias Model = {
   hoverCoords : (Int, Int),
   centre : (Float, Float),
   level : Int,
-  depth : Int,
-  loaded : Bool
+  depth : Int
 }
 
 type Msg = MoveZoom (Int, Int)
          | ZoomIn
          | SetDepth Int
          | ZoomOut
-         | Loaded
 
 --
 -- Setup
@@ -59,8 +57,7 @@ init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   centre = (-0.5, 0),
   level = 0,
-  depth = 100,
-  loaded = False
+  depth = 100
   } ! []
 
 subscriptions : Model -> Sub Msg
@@ -89,16 +86,10 @@ update msg model =
     ZoomIn ->
       ({model |
         centre = getComplexCentre model,
-        level = model.level + 1,
-        loaded = False
+        level = model.level + 1
        }, Cmd.none)
     ZoomOut ->
-      ({model |
-        level = model.level - 1,
-        loaded = False
-       }, Cmd.none)
-    Loaded ->
-      ({model | loaded = True}, Cmd.none)
+      ({model | level = model.level - 1}, Cmd.none)
 
 --
 -- View
@@ -144,9 +135,8 @@ viewSlides : Model -> List (Html Msg)
 viewSlides model =
   [
     img [
-      Attr.src (getUrl model),
-      --Attr.style (if model.loaded then [] else [("background-color", "pink")]),
-      on "load" (Json.succeed Loaded)
+      Attr.src (getUrl model)
+      --on "load" (Json.succeed Loaded)
     ] []
   ]
 
@@ -207,17 +197,11 @@ viewInfo model =
   let
     (hX, hY) = model.hoverCoords
     (cX, cY) = model.centre
-    isLoaded =
-      if model.loaded then
-        "Yes"
-      else
-        "No"
   in
     div [] [
       div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
       div [] [text ("scale: 1px = " ++ toString (getScale model.level))],
-      div [] [text ("zoom level: " ++ toString model.level)],
-      div [] [text ("loaded:" ++ isLoaded)]
+      div [] [text ("zoom level: " ++ toString model.level)]
     ]
 
 view : Model -> Html Msg
