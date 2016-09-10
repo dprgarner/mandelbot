@@ -28,7 +28,7 @@ type Msg = MoveZoom (Int, Int)
 --
 
 zoomFactor : Int
-zoomFactor = 2
+zoomFactor = 3
 
 viewWidth : Int
 viewWidth = 512
@@ -157,18 +157,31 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
+topLeftCornerOffsetHelper : Int -> Int -> Int
+topLeftCornerOffsetHelper boxDimension centreCoord =
+  centreCoord + boxDimension * (zoomFactor - 1) // (2 * zoomFactor)
+
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
   List.map (\snapshot ->
-    img [
-      Attr.src (getUrl snapshot),
-      Attr.style [
-        ("position", "absolute"),
-        ("left", "0"),
-        ("top", "0")
-      ]
-      --on "load" (Json.succeed Loaded)
-    ] []
+    let
+      dlevel = model.snapshot.level - snapshot.level
+      resizeFactor = zoomFactor ^ dlevel
+      (mX, mY) = model.snapshot.centre
+      (sX, sY) = snapshot.centre
+    in
+      img [
+        Attr.src (getUrl snapshot),
+        Attr.style [
+          ("position", "absolute"),
+          ("pointer-events", "none"),
+          --("left", px -(topLeftCornerOffsetHelper viewWidth cX)),
+          --("top", px -(topLeftCornerOffsetHelper viewHeight cY)),
+          ("width", px (viewWidth * resizeFactor)),
+          ("height", px (viewHeight * resizeFactor))
+        ]
+        --on "load" (Json.succeed Loaded)
+      ] []
   ) model.slides
 
 viewZoomBox : Model -> Html Msg
@@ -184,6 +197,7 @@ viewZoomBox model =
         ("display", "inline-block"),
         ("float", "left"),
         ("position", "relative"),
+        --("overflow", "hidden"),
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
@@ -236,7 +250,10 @@ viewInfo snapshot =
 
 view : Model -> Html Msg
 view model =
-  div [] [
+  div [Attr.style [
+      ("display", "inline-block"),
+      ("padding", "250px 250px")
+    ]] [
     viewZoomBox model,
     div [Attr.style [
       ("display", "inline-block"),
