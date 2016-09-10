@@ -8,7 +8,8 @@ import String exposing (toInt)
 
 type alias Model = {
   hoverCoords : (Int, Int),
-  snapshot : Snapshot
+  snapshot : Snapshot,
+  slides : List Snapshot
 }
 
 type alias Snapshot = {
@@ -56,14 +57,18 @@ main =
     subscriptions = subscriptions
   }
 
+initialSnapshot : Snapshot
+initialSnapshot = {
+  centre = (-0.5, 0),
+  level = 0,
+  depth = 100
+  }
+
 init : (Model, Cmd Msg)
 init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
-  snapshot = {
-    centre = (-0.5, 0),
-    level = 0,
-    depth = 100
-    }
+  snapshot = initialSnapshot,
+  slides = [initialSnapshot]
   } ! []
 
 subscriptions : Model -> Sub Msg
@@ -109,19 +114,20 @@ update msg model =
     MoveZoom coords ->
       ({model | hoverCoords = coords}, Cmd.none)
     SetDepth depth ->
-      ({model | snapshot = setDepth depth model.snapshot}, Cmd.none)
+      let snapshot = setDepth depth model.snapshot in
+      ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
     ZoomIn ->
       let
         newCentre = getComplexCentre model.hoverCoords model.snapshot
         snapshot = zoomTo newCentre 1 model.snapshot
       in
-        ({model | snapshot = snapshot}, Cmd.none)
+        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
     ZoomOut ->
       let
         newCentre = getComplexCentre model.hoverCoords model.snapshot
         snapshot = zoomTo newCentre (-1) model.snapshot
       in
-        ({model | snapshot = snapshot}, Cmd.none)
+        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none) 
 
 --
 -- View
@@ -217,9 +223,9 @@ viewInfo snapshot =
   let
     (cX, cY) = snapshot.centre
   in
-    div [] [
+    div [Attr.style [("border-bottom", "1px solid black")]] [
       div [] [text ("centre: " ++ toString cX ++ " + " ++ toString cY ++ "i")],
-      div [] [text ("scale: 1px = " ++ toString (getScale snapshot.level))],
+      --div [] [text ("scale: 1px = " ++ toString (getScale snapshot.level))],
       div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
 
@@ -232,6 +238,10 @@ view model =
       ("padding-left", px 50)
     ]] [
       viewSlider model.snapshot.depth,
-      viewInfo model.snapshot
+      viewInfo model.snapshot,
+      div [Attr.style [
+        ("display", "inline-block"),
+        ("padding-left", px 200)
+      ]] (List.map viewInfo model.slides)
     ]
   ]
