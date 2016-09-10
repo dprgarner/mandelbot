@@ -13,13 +13,18 @@ type alias Model = {
   depth : Int,
   loaded : Bool
 }
-type Msg = MoveZoom (Int, Int) | ZoomIn | SetDepth Int | ZoomOut | Loaded
+
+type Msg = MoveZoom (Int, Int)
+         | ZoomIn
+         | SetDepth Int
+         | ZoomOut
+         | Loaded
 
 --
 -- Setup
 --
 
-zoomFactor : Float
+zoomFactor : Int
 zoomFactor = 2
 
 viewWidth : Int
@@ -29,17 +34,17 @@ viewHeight : Int
 viewHeight = 512
 
 initialScale : Float
-initialScale = 1/128
+initialScale = 1/256
 
 getScale : Int -> Float
 getScale level =
-  initialScale / toFloat (2^level)
+  initialScale / toFloat (zoomFactor^level)
 
 zoomWidth : Int
-zoomWidth = round (toFloat viewWidth / zoomFactor)
+zoomWidth = round (toFloat viewWidth / toFloat zoomFactor)
 
 zoomHeight : Int
-zoomHeight = round (toFloat viewHeight / zoomFactor)
+zoomHeight = round (toFloat viewHeight / toFloat zoomFactor)
 
 main =
   program {
@@ -53,10 +58,47 @@ init : (Model, Cmd Msg)
 init = ({
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   centre = (-0.5, 0),
-  level = 1,
+  level = 0,
   depth = 100,
   loaded = False
   }, Cmd.none)
+
+subscriptions : Model -> Sub Msg
+subscriptions _ = Sub.none
+
+--
+-- Update
+--
+
+getComplexCentre : Model -> (Float, Float)
+getComplexCentre model =
+  let
+    (nX, nY) = boundedCoords model.hoverCoords
+    (cX, cY) = model.centre
+    s = getScale model.level
+  in
+    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
+
+update : Msg -> Model -> (Model, Cmd Msg)
+update msg model =
+  case msg of
+    MoveZoom coords ->
+      ({model | hoverCoords = coords}, Cmd.none)
+    SetDepth depth ->
+      ({model | depth = depth}, Cmd.none)
+    ZoomIn ->
+      ({model |
+        centre = getComplexCentre model,
+        level = model.level + 1,
+        loaded = False
+       }, Cmd.none)
+    ZoomOut ->
+      ({model |
+        level = model.level - 1,
+        loaded = False
+       }, Cmd.none)
+    Loaded ->
+      ({model | loaded = True}, Cmd.none)
 
 --
 -- View
@@ -185,37 +227,3 @@ view model =
       viewInfo model
     ]
   ]
-
---
--- Update
---
-
-getComplexCentre : Model -> (Float, Float)
-getComplexCentre model =
-  let
-    (nX, nY) = boundedCoords model.hoverCoords
-    (cX, cY) = model.centre
-    s = getScale model.level
-  in
-    (cX + s * toFloat (nX - viewWidth // 2), cY + s * toFloat (viewHeight // 2 - nY))
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
-  case msg of
-    MoveZoom coords ->
-      ({model | hoverCoords = coords}, Cmd.none)
-    SetDepth depth ->
-      ({model | depth = depth}, Cmd.none)
-    ZoomIn ->
-      ({model | centre = getComplexCentre model, level = model.level + 1, loaded = False}, Cmd.none)
-    ZoomOut ->
-      ({model | level = model.level - 1, loaded = False}, Cmd.none)
-    Loaded ->
-      ({model | loaded = True}, Cmd.none)
-
---
--- Subscriptions
---
-
-subscriptions : Model -> Sub Msg
-subscriptions _ = Sub.none

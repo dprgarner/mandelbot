@@ -13,6 +13,7 @@
   "dependencies": {
     "elm": "^0.17.1",
     "jimp": "^0.2.27",
+    "nodemon": "^1.10.2",
     "qs": "^6.2.1",
     "underscore": "^1.8.3"
   }
