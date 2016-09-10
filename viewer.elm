@@ -159,12 +159,17 @@ onRightClick msg =
 
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
-  [
+  List.map (\snapshot ->
     img [
-      Attr.src (getUrl model.snapshot)
+      Attr.src (getUrl snapshot),
+      Attr.style [
+        ("position", "absolute"),
+        ("left", "0"),
+        ("top", "0")
+      ]
       --on "load" (Json.succeed Loaded)
     ] []
-  ]
+  ) model.slides
 
 viewZoomBox : Model -> Html Msg
 viewZoomBox model =
@@ -185,7 +190,7 @@ viewZoomBox model =
       on "mousemove" (Json.map MoveZoom decodeOffset),
       onClick ZoomIn,
       onRightClick ZoomOut
-    ] ([
+    ] (List.reverse (
       div [Attr.style [
         ("border", "1px solid black"),
         ("pointer-events", "none"),
@@ -195,7 +200,7 @@ viewZoomBox model =
         ("width", px zoomWidth),
         ("height", px zoomHeight)
       ]] []
-    ] ++ viewSlides model)
+    :: viewSlides model))
 
 decodeRangeValue : Decoder Int
 decodeRangeValue =
