@@ -140,11 +140,21 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
-viewBox : Model -> Html Msg
-viewBox model =
+viewSlides : Model -> List (Html Msg)
+viewSlides model =
+  [
+    img [
+      Attr.src (getUrl model),
+      --Attr.style (if model.loaded then [] else [("background-color", "pink")]),
+      on "load" (Json.succeed Loaded)
+    ] []
+  ]
+
+viewZoomBox : Model -> Html Msg
+viewZoomBox model =
   let
-    (x, y) = boundedCoords model.hoverCoords
-    (topX, topY) = (x - zoomWidth // 2, y - zoomHeight // 2)
+    (mouseX, mouseY) = boundedCoords model.hoverCoords
+    (zoomBoxX, zoomBoxY) = (mouseX - zoomWidth // 2, mouseY - zoomHeight // 2)
   in
     div [
       Attr.style [
@@ -159,22 +169,17 @@ viewBox model =
       on "mousemove" (Json.map MoveZoom decodeOffset),
       onClick ZoomIn,
       onRightClick ZoomOut
-    ] [
+    ] ([
       div [Attr.style [
-        ("position", "absolute"),
-        ("left", px topX),
-        ("top", px topY),
-        ("width", px zoomWidth),
-        ("height", px zoomHeight),
+        ("border", "1px solid black"),
         ("pointer-events", "none"),
-        ("border", "1px solid black")
-      ]] [],
-      img [
-        Attr.src (getUrl model),
-        --Attr.style (if model.loaded then [] else [("background-color", "pink")]),
-        on "load" (Json.succeed Loaded)
-      ] []
-    ]
+        ("position", "absolute"),
+        ("left", px zoomBoxX),
+        ("top", px zoomBoxY),
+        ("width", px zoomWidth),
+        ("height", px zoomHeight)
+      ]] []
+    ] ++ viewSlides model)
 
 decodeRangeValue : Decoder Int
 decodeRangeValue =
@@ -218,7 +223,7 @@ viewInfo model =
 view : Model -> Html Msg
 view model =
   div [] [
-    viewBox model,
+    viewZoomBox model,
     div [Attr.style [
       ("display", "inline-block"),
       ("padding-left", px 50)
