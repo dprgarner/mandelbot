@@ -4,15 +4,20 @@ body {
 }
 
 .elm-container {
+  background-color: blue;
   width: 100vw;
   height: 100vh;
+  display: flex;
+}
+
+.viewer-container {
+  flex-grow: 1;
+  text-align: center; 
+  align-self: center;
 }
 
 .sidebar {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  flex-grow: 0;
   width: 200px;
   overflow-y: scroll;
 
@@ -32,11 +37,20 @@ body {
 }
 
 .viewer {
-  border: 1px solid black;
   cursor: pointer;
   display: inline-block;
   position: relative;
-  /*overflow: hidden;*/
+}
+
+.viewer::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  border: 3px solid white;
 }
 
 .zoom-box {

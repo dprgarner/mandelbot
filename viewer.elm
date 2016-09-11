@@ -37,7 +37,7 @@ zoomFactor : Int -- Relative size of the zoom box to the viewport
 zoomFactor = 2
 
 initialScale : Float -- Initial ratio of pixel space to complex space
-initialScale = 1/256
+initialScale = 1/128
 
 getScale : Int -> Float
 getScale level =
@@ -59,7 +59,7 @@ main =
 
 initialSnapshot : Snapshot
 initialSnapshot = {
-  topLeft = (-1.5, 1),
+  topLeft = (-2.5, 2),
   level = 0,
   depth = 100
   }
@@ -249,8 +249,8 @@ viewSnapshotInfo snapshot =
       div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
 
-viewInfo : Model -> Html Msg
-viewInfo model =
+viewSidebar : Model -> Html Msg
+viewSidebar model =
   div [Attr.class "sidebar"] [
     viewSlider model.snapshot.depth,
     viewSnapshotInfo model.snapshot,
@@ -260,6 +260,6 @@ viewInfo model =
 view : Model -> Html Msg
 view model =
   div [Attr.class "elm-container"] [
-    viewInfo model,
-    viewZoomBox model
+    div [Attr.class "viewer-container"] [viewZoomBox model],
+    viewSidebar model
   ]
