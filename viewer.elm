@@ -80,7 +80,7 @@ init : (Model, Cmd Msg)
 init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   snapshot = initialSnapshot,
-  slides = [newSlide initialSnapshot initialSnapshot]
+  slides = [createSlide initialSnapshot initialSnapshot]
   } ! []
 
 subscriptions : Model -> Sub Msg
@@ -131,10 +131,6 @@ zoomOut (boundedMouseX, boundedMouseY) snapshot =
     level = snapshot.level - 1
     }
 
-newSlide : Snapshot -> Snapshot -> Slide
-newSlide initial final =
-  Slide initial final (Style.init (getAttributes initial final))
-
 getAttributes : Snapshot -> Snapshot -> List (Property Float a)
 getAttributes initial final =
   let
@@ -150,6 +146,10 @@ getAttributes initial final =
       Height (toFloat viewHeight * resizeFactor) Px
     ]
 
+createSlide : Snapshot -> Snapshot -> Slide
+createSlide initial final =
+  Slide initial final (Style.init (getAttributes initial final))
+
 updateSlide : Snapshot -> Slide -> Slide
 updateSlide snapshot slide =
   {slide | style = Style.init (getAttributes snapshot slide.final)}
@@ -160,7 +160,7 @@ update msg model =
     newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
     newSnapshot model snapshot =
       let
-        slides = (newSlide model.snapshot snapshot) :: model.slides
+        slides = (createSlide model.snapshot snapshot) :: model.slides
           |> List.map (updateSlide snapshot)
       in
         {model | snapshot = snapshot, slides = slides} ! []
