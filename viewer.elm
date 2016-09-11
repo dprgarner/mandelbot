@@ -148,7 +148,9 @@ getAttributes initial final =
 
 createSlide : Snapshot -> Snapshot -> Slide
 createSlide initial final =
-  Slide initial final (Style.init (getAttributes initial final))
+  Slide initial final
+    <| Style.init
+    <| getAttributes initial final
 
 updateSlide : Snapshot -> Slide -> Slide
 updateSlide snapshot slide =
@@ -178,7 +180,9 @@ update msg model =
         zoomOut (boundedCoords model.hoverCoords) model.snapshot
           |> newSnapshot model
       Animate time ->
-        model ! []
+        {model | slides = List.map (\slide ->
+            {slide | style = Style.tick time slide.style}
+          ) model.slides} ! []
 
 --
 -- View
