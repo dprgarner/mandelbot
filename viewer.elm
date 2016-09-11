@@ -5,7 +5,7 @@ import Html.Events exposing (on, onClick, onWithOptions, Options)
 import Json.Decode as Json
 import Json.Decode exposing ((:=), Decoder)
 import String exposing (toInt)
-import Time exposing (Time)
+import Time exposing (Time, second)
 
 import AnimationFrame
 import Style
@@ -152,9 +152,15 @@ createSlide initial final =
     <| Style.init
     <| getAttributes initial final
 
-updateSlide : Snapshot -> Slide -> Slide
-updateSlide snapshot slide =
-  {slide | style = Style.init (getAttributes snapshot slide.final)}
+updateSlideAnimation : Snapshot -> Slide -> Slide
+updateSlideAnimation snapshot slide =
+  let newStyle =
+    Style.animate
+      |> Style.easing (\x -> x)
+      |> Style.duration (0.5*second)
+      |> Style.to (getAttributes snapshot slide.final)
+      |> Style.on slide.style
+  in {slide | style = newStyle}
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -163,7 +169,7 @@ update msg model =
     newSnapshot model snapshot =
       let
         slides = (createSlide model.snapshot snapshot) :: model.slides
-          |> List.map (updateSlide snapshot)
+          |> List.map (updateSlideAnimation snapshot)
       in
         {model | snapshot = snapshot, slides = slides} ! []
   in
@@ -181,8 +187,8 @@ update msg model =
           |> newSnapshot model
       Animate time ->
         {model | slides = List.map (\slide ->
-            {slide | style = Style.tick time slide.style}
-          ) model.slides} ! []
+          {slide | style = Style.tick time slide.style}
+        ) model.slides} ! []
 
 --
 -- View
