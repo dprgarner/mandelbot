@@ -52,7 +52,6 @@ function api(queryDict, res) {
 
 http.createServer((req, res) => {
   function serveStatic(res, contentType, filePath) {
-    console.log(contentType, filePath);
     res.writeHead(200, {'Content-Type': contentType});
     fs.createReadStream(filePath).pipe(res);
   }
@@ -64,6 +63,8 @@ http.createServer((req, res) => {
       return api(reqDict.query, res);
     case '/elm.js':
       return serveStatic(res, 'text/javascript', './elm.js');
+    case '/style.css':
+      return serveStatic(res, 'text/css', './style.css');
     default:
       return serveStatic(res, 'text/html', './index.html');
   }
