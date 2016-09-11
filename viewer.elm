@@ -131,6 +131,29 @@ zoomOut (boundedMouseX, boundedMouseY) snapshot =
     level = snapshot.level - 1
     }
 
+newSlide : Snapshot -> Snapshot -> Slide
+newSlide initial final =
+  Slide initial final (Style.init (getAttributes initial final))
+
+getAttributes : Snapshot -> Snapshot -> List (Property Float a)
+getAttributes initial final =
+  let
+    resizeFactor = toFloat <| zoomFactor ^ (initial.level - final.level)
+    (iX, iY) = initial.topLeft
+    (fX, fY) = final.topLeft
+    scale = getScale initial.level
+  in
+    [
+      Left ((fX - iX) / scale) Px,
+      Top ((iY - fY) / scale) Px,
+      Width (toFloat viewWidth * resizeFactor) Px,
+      Height (toFloat viewHeight * resizeFactor) Px
+    ]
+
+updateSlide : Snapshot -> Slide -> Slide
+updateSlide snapshot slide =
+  {slide | style = Style.init (getAttributes snapshot slide.final)}
+
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   let
@@ -138,6 +161,7 @@ update msg model =
     newSnapshot model snapshot =
       let
         slides = (newSlide model.snapshot snapshot) :: model.slides
+          |> List.map (updateSlide snapshot)
       in
         {model | snapshot = snapshot, slides = slides} ! []
   in
@@ -184,32 +208,13 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
-newSlide : Snapshot -> Snapshot -> Slide
-newSlide initial final =
-  Slide initial final (Style.init (getAttributes initial final))
-
-getAttributes : Snapshot -> Snapshot -> List (Property Float a)
-getAttributes initial final =
-  let
-    resizeFactor = toFloat <| zoomFactor ^ (initial.level - final.level)
-    (iX, iY) = initial.topLeft
-    (fX, fY) = final.topLeft
-    scale = getScale initial.level
-  in
-    [
-      Left ((fX - iX) / scale) Px,
-      Top ((iY - fY) / scale) Px,
-      Width (toFloat viewWidth * resizeFactor) Px,
-      Height (toFloat viewHeight * resizeFactor) Px
-    ]
-
-viewSlides : Snapshot -> List Slide -> List (Html Msg)
-viewSlides snapshot slides =
+viewSlides : List Slide -> List (Html Msg)
+viewSlides slides =
   List.map (\slide ->
     img [
       Attr.src (getUrl slide.final),
       Attr.class "slide",
-      Attr.style <| Style.render <| Style.init <| getAttributes snapshot slide.final
+      Attr.style <| Style.render <| slide.style
       --on "load" (Json.succeed Loaded)
     ] []
   ) slides
@@ -242,7 +247,7 @@ viewZoomBox model =
           ("height", px zoomHeight)
         ]
       ] []
-    :: viewSlides model.snapshot model.slides))
+    :: viewSlides model.slides))
 
 decodeRangeValue : Decoder Int
 decodeRangeValue =
