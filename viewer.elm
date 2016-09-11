@@ -119,24 +119,23 @@ zoomOut (boundedMouseX, boundedMouseY) snapshot =
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case msg of
-    MoveZoom coords ->
-      ({model | hoverCoords = coords}, Cmd.none)
-    SetDepth depth ->
-      let
-        snapshot = (\snapshot -> {snapshot | depth = depth}) model.snapshot
-      in
-        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
-    ZoomIn ->
-      let
-        snapshot = zoomIn (boundedCoords model.hoverCoords) model.snapshot
-      in
-        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
-    ZoomOut ->
-      let
-        snapshot = zoomOut (boundedCoords model.hoverCoords) model.snapshot
-      in
-        ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
+  let
+    newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
+    newSnapshot model snapshot =
+      ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
+  in
+    case msg of
+      MoveZoom coords ->
+        ({model | hoverCoords = coords}, Cmd.none)
+      SetDepth depth ->
+        (\snapshot -> {snapshot | depth = depth}) model.snapshot
+          |> newSnapshot model
+      ZoomIn ->
+        zoomIn (boundedCoords model.hoverCoords) model.snapshot
+          |> newSnapshot model
+      ZoomOut ->
+        zoomOut (boundedCoords model.hoverCoords) model.snapshot
+          |> newSnapshot model
 
 --
 -- View
