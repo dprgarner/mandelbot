@@ -180,9 +180,8 @@ viewSlides model =
     in
       img [
         Attr.src (getUrl snapshot),
+        Attr.class "slide",
         Attr.style [
-          ("position", "absolute"),
-          ("pointer-events", "none"),
           ("left", px <| round <| (sX - mX) / scale),
           ("top", px <| round <| (mY - sY) / scale),
           ("width", px (viewWidth * resizeFactor)),
@@ -199,13 +198,8 @@ viewZoomBox model =
     (zoomBoxX, zoomBoxY) = (mouseX - zoomWidth // 2, mouseY - zoomHeight // 2)
   in
     div [
+      Attr.class "viewer",
       Attr.style [
-        ("border", "1px solid black"),
-        ("cursor", "pointer"),
-        ("display", "inline-block"),
-        ("float", "left"),
-        ("position", "relative"),
-        --("overflow", "hidden"),
         ("width", px viewWidth),
         ("height", px viewHeight)
       ],
@@ -213,15 +207,15 @@ viewZoomBox model =
       onClick ZoomIn,
       onRightClick ZoomOut
     ] (List.reverse (
-      div [Attr.style [
-        ("border", "1px solid black"),
-        ("pointer-events", "none"),
-        ("position", "absolute"),
-        ("left", px zoomBoxX),
-        ("top", px zoomBoxY),
-        ("width", px zoomWidth),
-        ("height", px zoomHeight)
-      ]] []
+      div [
+        Attr.class "zoom-box",
+        Attr.style [
+          ("left", px zoomBoxX),
+          ("top", px zoomBoxY),
+          ("width", px zoomWidth),
+          ("height", px zoomHeight)
+        ]
+      ] []
     :: viewSlides model))
 
 decodeRangeValue : Decoder Int
@@ -250,36 +244,22 @@ viewSnapshotInfo snapshot =
   let
     (tX, tY) = snapshot.topLeft
   in
-    div [Attr.style [("border-bottom", "1px solid black")]] [
+    div [Attr.class "snapshot-info-li"] [
       div [] [text ("topLeft: " ++ toString tX ++ " + " ++ toString tY ++ "i")],
       div [] [text ("zoom level: " ++ toString snapshot.level)]
     ]
 
 viewInfo : Model -> Html Msg
 viewInfo model =
-  div [Attr.style [
-    ("display", "inline-block"),
-    ("float", "right"),
-    ("border-left", "1px solid black"),
-    ("height", "100%"),
-    ("background-color", "white"),
-    ("z-index", "1000")
-  ]] [
+  div [Attr.class "sidebar"] [
     viewSlider model.snapshot.depth,
     viewSnapshotInfo model.snapshot,
-    div [Attr.style [
-      ("display", "inline-block"),
-      ("padding-left", px 50)
-    ]] (List.map viewSnapshotInfo model.slides)
+    div [Attr.class "snapshot-info-ul"] (List.map viewSnapshotInfo model.slides)
   ]
 
 view : Model -> Html Msg
 view model =
-  div [Attr.style [
-      ("width", "100vw"),
-      ("display", "inline-block"),
-      ("height", "100vh")
-    ]] [
+  div [Attr.class "elm-container"] [
     viewInfo model,
     viewZoomBox model
   ]
