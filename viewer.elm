@@ -14,13 +14,19 @@ import Style.Properties as Props
 type alias Model = {
   hoverCoords : (Int, Int),
   snapshot : Snapshot,
-  slides : List (Snapshot, Snapshot) -- animateFrom, animateTo
+  slides : List Slide
 }
 
 type alias Snapshot = {
   topLeft : (Float, Float), -- Coordinates of top left in complex space
   level : Int,              -- Zoom level
   depth : Int               -- Maximum number of z->z^2+c iterations performed per pixel
+}
+
+type alias Slide = {
+  initial : Snapshot,
+  final : Snapshot,
+  style : Style.Animation
 }
 
 type Msg = MoveZoom (Int, Int)
@@ -74,7 +80,7 @@ init : (Model, Cmd Msg)
 init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   snapshot = initialSnapshot,
-  slides = [(initialSnapshot, initialSnapshot)]
+  slides = [newSlide initialSnapshot initialSnapshot]
   } ! []
 
 subscriptions : Model -> Sub Msg
@@ -130,7 +136,7 @@ update msg model =
   let
     newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
     newSnapshot model snapshot =
-      {model | snapshot = snapshot, slides = (model.snapshot, snapshot) :: model.slides} ! []
+      {model | snapshot = snapshot, slides = (newSlide model.snapshot snapshot) :: model.slides} ! []
   in
     case msg of
       MoveZoom coords ->
@@ -178,10 +184,15 @@ onRightClick : msg -> Attribute msg
 onRightClick msg =
   onWithOptions "contextmenu" (Options True True) (Json.succeed msg)
 
+newSlide : Snapshot -> Snapshot -> Slide
+newSlide initial final =
+  Slide initial final (Style.init [])
+
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
-  List.map (\(_, snapshot) ->
+  List.map (\slide ->
     let
+      snapshot = slide.final
       resizeFactor = zoomFactor ^ (model.snapshot.level - snapshot.level)
       (mX, mY) = model.snapshot.topLeft
       (sX, sY) = snapshot.topLeft
@@ -263,7 +274,7 @@ viewSidebar model =
   div [Attr.class "sidebar"] [
     viewSlider model.snapshot.depth,
     viewSnapshotInfo model.snapshot,
-    div [Attr.class "snapshot-info-ul"] (List.map (\(_, snapshot) -> viewSnapshotInfo snapshot) model.slides)
+    div [Attr.class "snapshot-info-ul"] (List.map (\slide -> viewSnapshotInfo slide.final) model.slides)
   ]
 
 view : Model -> Html Msg
