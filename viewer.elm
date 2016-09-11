@@ -9,7 +9,7 @@ import Time exposing (Time)
 
 import AnimationFrame
 import Style
-import Style.Properties as Props
+import Style.Properties exposing (..)
 
 type alias Model = {
   hoverCoords : (Int, Int),
@@ -136,7 +136,10 @@ update msg model =
   let
     newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
     newSnapshot model snapshot =
-      {model | snapshot = snapshot, slides = (newSlide model.snapshot snapshot) :: model.slides} ! []
+      let
+        slides = (newSlide model.snapshot snapshot) :: model.slides
+      in
+        {model | snapshot = snapshot, slides = slides} ! []
   in
     case msg of
       MoveZoom coords ->
@@ -156,9 +159,6 @@ update msg model =
 --
 -- View
 --
-
-px : Int -> String
-px i = toString i ++ "px"
 
 getUrl : Snapshot -> String
 getUrl snapshot =
@@ -186,30 +186,36 @@ onRightClick msg =
 
 newSlide : Snapshot -> Snapshot -> Slide
 newSlide initial final =
-  Slide initial final (Style.init [])
+  Slide initial final (Style.init (getAttributes initial final))
 
-viewSlides : Model -> List (Html Msg)
-viewSlides model =
+getAttributes : Snapshot -> Snapshot -> List (Property Float a)
+getAttributes initial final =
+  let
+    resizeFactor = toFloat <| zoomFactor ^ (initial.level - final.level)
+    (iX, iY) = initial.topLeft
+    (fX, fY) = final.topLeft
+    scale = getScale initial.level
+  in
+    [
+      Left ((fX - iX) / scale) Px,
+      Top ((iY - fY) / scale) Px,
+      Width (toFloat viewWidth * resizeFactor) Px,
+      Height (toFloat viewHeight * resizeFactor) Px
+    ]
+
+viewSlides : Snapshot -> List Slide -> List (Html Msg)
+viewSlides snapshot slides =
   List.map (\slide ->
-    let
-      snapshot = slide.final
-      resizeFactor = zoomFactor ^ (model.snapshot.level - snapshot.level)
-      (mX, mY) = model.snapshot.topLeft
-      (sX, sY) = snapshot.topLeft
-      scale = getScale model.snapshot.level
-    in
-      img [
-        Attr.src (getUrl snapshot),
-        Attr.class "slide",
-        Attr.style [
-          ("left", (sX - mX) / scale |> round |> px),
-          ("top", (mY - sY) / scale |> round |> px),
-          ("width", viewWidth * resizeFactor |> px),
-          ("height", viewHeight * resizeFactor |> px)
-        ]
-        --on "load" (Json.succeed Loaded)
-      ] []
-  ) model.slides
+    img [
+      Attr.src (getUrl slide.final),
+      Attr.class "slide",
+      Attr.style <| Style.render <| Style.init <| getAttributes snapshot slide.final
+      --on "load" (Json.succeed Loaded)
+    ] []
+  ) slides
+
+px : Int -> String
+px i = toString i ++ "px"
 
 viewZoomBox : Model -> Html Msg
 viewZoomBox model =
@@ -236,7 +242,7 @@ viewZoomBox model =
           ("height", px zoomHeight)
         ]
       ] []
-    :: viewSlides model))
+    :: viewSlides model.snapshot model.slides))
 
 decodeRangeValue : Decoder Int
 decodeRangeValue =
