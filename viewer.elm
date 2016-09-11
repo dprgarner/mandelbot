@@ -2,14 +2,19 @@ import Html exposing (Attribute, div, Html, img, input, text)
 import Html.App exposing (program)
 import Html.Attributes as Attr
 import Html.Events exposing (on, onClick, onWithOptions, Options)
-import Json.Decode exposing ((:=), Decoder)
 import Json.Decode as Json
+import Json.Decode exposing ((:=), Decoder)
 import String exposing (toInt)
+import Time exposing (Time)
+
+import AnimationFrame
+import Style
+import Style.Properties as Props
 
 type alias Model = {
   hoverCoords : (Int, Int),
   snapshot : Snapshot,
-  slides : List Snapshot
+  slides : List (Snapshot, Snapshot) -- animateFrom, animateTo
 }
 
 type alias Snapshot = {
@@ -22,6 +27,7 @@ type Msg = MoveZoom (Int, Int)
          | ZoomIn
          | SetDepth Int
          | ZoomOut
+         | Animate Time
 
 --
 -- Setup
@@ -68,11 +74,13 @@ init : (Model, Cmd Msg)
 init = {
   hoverCoords = (viewWidth // 2, viewHeight // 2),
   snapshot = initialSnapshot,
-  slides = [initialSnapshot]
+  slides = [(initialSnapshot, initialSnapshot)]
   } ! []
 
 subscriptions : Model -> Sub Msg
-subscriptions _ = Sub.none
+subscriptions _ =
+  --Sub.none
+  AnimationFrame.times Animate
 
 --
 -- Update
@@ -122,7 +130,7 @@ update msg model =
   let
     newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
     newSnapshot model snapshot =
-      {model | snapshot = snapshot, slides = snapshot :: model.slides} ! []
+      {model | snapshot = snapshot, slides = (model.snapshot, snapshot) :: model.slides} ! []
   in
     case msg of
       MoveZoom coords ->
@@ -136,6 +144,8 @@ update msg model =
       ZoomOut ->
         zoomOut (boundedCoords model.hoverCoords) model.snapshot
           |> newSnapshot model
+      Animate time ->
+        model ! []
 
 --
 -- View
@@ -170,10 +180,9 @@ onRightClick msg =
 
 viewSlides : Model -> List (Html Msg)
 viewSlides model =
-  List.map (\snapshot ->
+  List.map (\(_, snapshot) ->
     let
-      dlevel = model.snapshot.level - snapshot.level
-      resizeFactor = zoomFactor ^ dlevel
+      resizeFactor = zoomFactor ^ (model.snapshot.level - snapshot.level)
       (mX, mY) = model.snapshot.topLeft
       (sX, sY) = snapshot.topLeft
       scale = getScale model.snapshot.level
@@ -182,10 +191,10 @@ viewSlides model =
         Attr.src (getUrl snapshot),
         Attr.class "slide",
         Attr.style [
-          ("left", px <| round <| (sX - mX) / scale),
-          ("top", px <| round <| (mY - sY) / scale),
-          ("width", px (viewWidth * resizeFactor)),
-          ("height", px (viewHeight * resizeFactor))
+          ("left", (sX - mX) / scale |> round |> px),
+          ("top", (mY - sY) / scale |> round |> px),
+          ("width", viewWidth * resizeFactor |> px),
+          ("height", viewHeight * resizeFactor |> px)
         ]
         --on "load" (Json.succeed Loaded)
       ] []
@@ -254,7 +263,7 @@ viewSidebar model =
   div [Attr.class "sidebar"] [
     viewSlider model.snapshot.depth,
     viewSnapshotInfo model.snapshot,
-    div [Attr.class "snapshot-info-ul"] (List.map viewSnapshotInfo model.slides)
+    div [Attr.class "snapshot-info-ul"] (List.map (\(_, snapshot) -> viewSnapshotInfo snapshot) model.slides)
   ]
 
 view : Model -> Html Msg

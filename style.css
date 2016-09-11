@@ -54,7 +54,7 @@ body {
 }
 
 .zoom-box {
-  border: 1px solid black;
+  border: 1px solid white;
   pointer-events: none;
   position: absolute;
 }
