@@ -15,7 +15,7 @@ type alias Model = {
 type alias Snapshot = {
   topLeft : (Float, Float), -- Coordinates of top left in complex space
   level : Int,              -- Zoom level
-  depth : Int               -- Number of iterations performed per pixel
+  depth : Int               -- Maximum number of z->z^2+c iterations performed per pixel
 }
 
 type Msg = MoveZoom (Int, Int)
@@ -122,11 +122,11 @@ update msg model =
   let
     newSnapshot : Model -> Snapshot -> (Model, Cmd Msg)
     newSnapshot model snapshot =
-      ({model | snapshot = snapshot, slides = snapshot :: model.slides}, Cmd.none)
+      {model | snapshot = snapshot, slides = snapshot :: model.slides} ! []
   in
     case msg of
       MoveZoom coords ->
-        ({model | hoverCoords = coords}, Cmd.none)
+        {model | hoverCoords = coords} ! []
       SetDepth depth ->
         (\snapshot -> {snapshot | depth = depth}) model.snapshot
           |> newSnapshot model

@@ -3,10 +3,10 @@
 const fs = require('fs');
 const http = require('http');
 const stream = require('stream');
+const url = require('url');
 
 const _  = require('underscore');
 const Jimp = require('jimp');
-const qs = require('qs');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
@@ -22,8 +22,7 @@ function pipeImageTo(image, dest) {
   });
 }
 
-function api (req, res) {
-  qs.parse(req.url.split('?')[0]);
+function api(queryDict, res) {
   let params = _.extend({}, {
     width: 512,
     height: 512,
@@ -31,7 +30,7 @@ function api (req, res) {
     y: 0,
     depth: 100,
     scale: 1/128,
-  }, qs.parse(req.url.split('?')[1]));
+  }, queryDict);
 
   params.width = parseInt(params.width);
   params.height = parseInt(params.height);
@@ -52,15 +51,22 @@ function api (req, res) {
 }
 
 http.createServer((req, res) => {
-  if (req.url.indexOf('/api') === 0) return api(req, res);
-
-  if (req.url.indexOf('/elm.js') === 0) {
-    res.writeHead(200, {'Content-Type': 'text/javascript'});
-    return fs.createReadStream('./elm.js').pipe(res);
+  function serveStatic(res, contentType, filePath) {
+    console.log(contentType, filePath);
+    res.writeHead(200, {'Content-Type': contentType});
+    fs.createReadStream(filePath).pipe(res);
   }
 
-  res.writeHead(200, {'Content-Type': 'text/html'});
-  fs.createReadStream('./index.html').pipe(res);
+  let reqDict = url.parse(req.url, true);
+
+  switch (reqDict.pathname) {
+    case '/api/':
+      return api(reqDict.query, res);
+    case '/elm.js':
+      return serveStatic(res, 'text/javascript', './elm.js');
+    default:
+      return serveStatic(res, 'text/html', './index.html');
+  }
 }).listen(PORT);
 
 console.log(`Server listening on port ${PORT}`)
