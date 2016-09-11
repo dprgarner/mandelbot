@@ -243,7 +243,7 @@ viewSlider depth =
       Attr.min "25",
       Attr.max "2000",
       Attr.step "25",
-      Attr.value (toString depth),
+      Attr.defaultValue (toString initialSnapshot.depth),
       on "change" (Json.map SetDepth decodeRangeValue)
     ] []
   ]
