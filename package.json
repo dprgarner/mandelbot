@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
+    "postinstall": "elm-package install -y",
     "start": "elm-make viewer.elm --output elm.js && node main.js",
     "watch": "nodemon -e \"js,elm,css\" -i \"elm.js\" -x \"npm start\"",
     "test": "echo \"Error: no test specified\" && exit 1"
