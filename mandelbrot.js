@@ -44,7 +44,6 @@ exports.drawMandelbrot = function(mandelbrot, depth, cb) {
   let height = mandelbrot.length;
 
   let min = depth;
-  let d = Date.now();
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
       if (mandelbrot[y][x])

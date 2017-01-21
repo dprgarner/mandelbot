@@ -1,11 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mandelbrot</title>
-    <script src="/elm.js"></script>
-    <link rel="stylesheet" type="text/css" href="/style.css">
+  <title>Mandelbrot</title>
+  <script src="/elm.js"></script>
+  <link rel="stylesheet" type="text/css" href="/style.css">
 </head>
 <body>
-    <script type="text/javascript">Elm.Main.fullscreen()</script>
+  <script type="text/javascript">
+    (function () {
+      var query = window.location.search.substring(1);
+      var params = {};
+
+      if (query) {
+        var paramsArray = query.split('&');
+        var params = {};
+        for (var i = 0; i < paramsArray.length; i++) {
+          pair = paramsArray[i].split('=');
+          params[pair[0]] = pair[1];
+        }
+      }
+
+      params.x = (params.x === undefined) ? -0.5 : parseFloat(params.x);
+      params.y = (params.y === undefined) ? 0 : parseFloat(params.y);
+      params.level = (params.level === undefined) ? 1 : parseInt(params.level);
+      params.depth = (params.depth === undefined) ? 200 : parseInt(params.depth);
+
+      Elm.Main.fullscreen(params);
+    })();
+  </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 import Html exposing (Attribute, div, Html, img, input, text)
-import Html.App exposing (program)
+import Html.App exposing (programWithFlags)
 import Html.Attributes as Attr
 import Html.Events exposing (on, onClick, onWithOptions, Options)
 import Json.Decode as Json
@@ -61,27 +61,48 @@ zoomWidth = round (toFloat viewWidth / toFloat zoomFactor)
 zoomHeight : Int
 zoomHeight = round (toFloat viewHeight / toFloat zoomFactor)
 
+
+-- ?x=0&y=0&level=1&depth=200
+--topLeft = 
+
 main =
-  program {
+  programWithFlags {
     init = init,
     view = view,
     update = update,
     subscriptions = subscriptions
   }
 
-initialSnapshot : Snapshot
-initialSnapshot = {
-  topLeft = (-2.5, 2),
-  level = 0,
-  depth = 100
+getInitialSnapshot : Flags -> Snapshot
+getInitialSnapshot flags = 
+  let
+    scale = getScale flags.level
+    topX = flags.x - scale * toFloat viewWidth / 2
+    topY = flags.y + scale * toFloat viewHeight / 2
+  in
+    {
+      topLeft = (topX, topY),
+      level = flags.level,
+      depth = flags.depth
+    }
+
+type alias Flags = {
+  x : Float,
+  y : Float,
+  level : Int,
+  depth : Int
   }
 
-init : (Model, Cmd Msg)
-init = {
-  hoverCoords = (viewWidth // 2, viewHeight // 2),
-  snapshot = initialSnapshot,
-  slides = [createSlide initialSnapshot initialSnapshot]
-  } ! []
+init : Flags -> (Model, Cmd Msg)
+init flags = 
+  let
+    initialSnapshot = getInitialSnapshot flags 
+  in
+    {
+      hoverCoords = (viewWidth // 2, viewHeight // 2),
+      snapshot = initialSnapshot,
+      slides = [createSlide initialSnapshot initialSnapshot]
+    } ! []
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
@@ -268,6 +289,7 @@ decodeRangeValue =
 
 viewSlider : Int -> Html Msg
 viewSlider depth =
+  let initialDepth = 200 in -- FIX
   div [] [
     div [] [text ("Depth (# of iterations): " ++ toString depth)],
     input [
@@ -275,7 +297,7 @@ viewSlider depth =
       Attr.min "25",
       Attr.max "2000",
       Attr.step "25",
-      Attr.defaultValue (toString initialSnapshot.depth),
+      Attr.defaultValue (toString initialDepth),
       on "change" (Json.map SetDepth decodeRangeValue)
     ] []
   ]
