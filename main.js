@@ -12,6 +12,7 @@ const CombinedStream = require('combined-stream');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
+const getKeyframes = require('./animate').getKeyframes;
 
 const PORT = 80;
 
@@ -59,65 +60,43 @@ function apiPng(queryDict, res) {
 }
 
 function apiGif(queryDict, res) {
-  let params = {
-    width: 450,
-    height: 300,
-    // x: 0.5,
-    // y: 0,
-    x: -0.64,
-    y: 0.45,
-    depth: 500,
-    scale: 1 / Math.pow(2, 14),
-  };
-
+  let width = null, height = null;
   let startTime = Date.now();
-  let set = constructSet(_.extend({}, params, {
-    width: params.width * 4,
-    height: params.height * 4,
-  }));
-  console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  drawMandelbrot(set, params.depth, function (err, image) {
-    if (err) return console.error(err);
-    let set2 = constructSet(_.extend({}, params, {
-      scale: params.scale / 2,
-      depth: 1000,
-    }));
-
-    console.log(`Drawn base images after ${Date.now() - startTime}ms`);
-    // image2.invert();
+  getKeyframes()
+  .then((keyframes) => {
+    let images = [];
+    return keyframes;
+  })
+  .then((frames) => {
+    console.log('Combining frames...');
+    width = frames[0].bitmap.width;
+    height = frames[0].bitmap.height;
     let combined = CombinedStream.create();
 
-    const framesPerLevel = 15;
-    const power = Math.exp(Math.log(2) / framesPerLevel);
-
-    for (var i = 0; i < framesPerLevel; i++) {
-      let scaledImage = image.clone();
-      let newWidth = Math.floor(params.width * Math.pow(power, i));
-      let newHeight = Math.floor(params.height * Math.pow(power, i));
-      // Jimp.RESIZE_BEZIER Looks better, but is really slow.
-      scaledImage.resize(newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      scaledImage.crop(
-        (newWidth - params.width) / 2,
-        (newHeight - params.height) / 2,
-        params.width,
-        params.height
-      );
-
+    _.each(frames, (frame) => {
       let s = new stream.PassThrough();
-      s.end(scaledImage.bitmap.data);
+      s.end(frame.bitmap.data);
       combined.append(s);
-      console.log(`Drawn frame ${i} after ${Date.now() - startTime}ms`);
-    }
+    });
 
+    return combined;
+  })
+  .then((stream) => {
+    console.log('Creating gif...');
+    let encoder = new GIFEncoder(width, height);
     res.writeHead(200, {'Content-Type': 'image/gif'});
-    let encoder = new GIFEncoder(params.width, params.height);
 
-    combined.pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
+    stream
+    .pipe(encoder.createWriteStream({repeat: 0, delay: 500}))
     .pipe(res)
     .on('finish', function () {
       console.log(`Rendered after ${Date.now() - startTime}ms`);
     });
+  })
+  .catch((err) => {
+    console.error(err);
+    return res.end(err.message);
   });
 }
 
