@@ -65,13 +65,35 @@ function apiGif(queryDict, res) {
 
   getKeyframes()
   .then((keyframes) => {
-    let images = [];
-    return keyframes;
+    width = keyframes[0].bitmap.width;
+    height = keyframes[0].bitmap.height;
+
+    let frames = [];
+    const framesPerLevel = 5;
+    const power = Math.exp(Math.log(2) / framesPerLevel);
+
+    _.each(keyframes, (baseImage) => {
+      _.each(_.range(framesPerLevel), (i) => {
+        let scaledImage = baseImage.clone();
+        let newWidth = Math.floor(width * Math.pow(power, i));
+        let newHeight = Math.floor(height * Math.pow(power, i));
+        // Jimp.RESIZE_BEZIER Looks better, but is really slow.
+        scaledImage.resize(newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        scaledImage.crop(
+          (newWidth - width) / 2,
+          (newHeight - height) / 2,
+          width,
+          height
+        );
+        frames.push(scaledImage)
+        console.log(`Drawn frames ${i} after ${Date.now() - startTime}ms`);
+      });
+    });
+
+    return frames;
   })
   .then((frames) => {
     console.log('Combining frames...');
-    width = frames[0].bitmap.width;
-    height = frames[0].bitmap.height;
     let combined = CombinedStream.create();
 
     _.each(frames, (frame) => {
@@ -88,7 +110,7 @@ function apiGif(queryDict, res) {
     res.writeHead(200, {'Content-Type': 'image/gif'});
 
     stream
-    .pipe(encoder.createWriteStream({repeat: 0, delay: 500}))
+    .pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
     .pipe(res)
     .on('finish', function () {
       console.log(`Rendered after ${Date.now() - startTime}ms`);
