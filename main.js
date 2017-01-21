@@ -59,26 +59,53 @@ function apiPng(queryDict, res) {
 }
 
 function apiGif(queryDict, res) {
+  let params = {
+    width: 450,
+    height: 300,
+    // x: 0.5,
+    // y: 0,
+    x: -0.64,
+    y: 0.45,
+    depth: 500,
+    scale: 1 / Math.pow(2, 14),
+  };
+
   let startTime = Date.now();
-  let params = getParamsWithDefault(queryDict);
-  let set = constructSet(params);
+  let set = constructSet(_.extend({}, params, {
+    width: params.width * 4,
+    height: params.height * 4,
+  }));
   console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
   drawMandelbrot(set, params.depth, function (err, image) {
     if (err) return console.error(err);
-    console.log(`Drawn after ${Date.now() - startTime}ms`);
+    let set2 = constructSet(_.extend({}, params, {
+      scale: params.scale / 2,
+      depth: 1000,
+    }));
+
+    console.log(`Drawn base images after ${Date.now() - startTime}ms`);
+    // image2.invert();
     let combined = CombinedStream.create();
 
-    let power = Math.exp(Math.log(2) / 30);
-    console.log(power);
-    for (var i = 0; i < 30; i++) {
-      let image2 = image.clone();
-      let newSize = Math.floor(params.width * Math.pow(power, i));
-      image2.resize(newSize, Jimp.AUTO);
-      image2.crop(0, 0, params.width, params.height);
+    const framesPerLevel = 15;
+    const power = Math.exp(Math.log(2) / framesPerLevel);
+
+    for (var i = 0; i < framesPerLevel; i++) {
+      let scaledImage = image.clone();
+      let newWidth = Math.floor(params.width * Math.pow(power, i));
+      let newHeight = Math.floor(params.height * Math.pow(power, i));
+      // Jimp.RESIZE_BEZIER Looks better, but is really slow.
+      scaledImage.resize(newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      scaledImage.crop(
+        (newWidth - params.width) / 2,
+        (newHeight - params.height) / 2,
+        params.width,
+        params.height
+      );
 
       let s = new stream.PassThrough();
-      s.end(image2.bitmap.data);
+      s.end(scaledImage.bitmap.data);
       combined.append(s);
       console.log(`Drawn frame ${i} after ${Date.now() - startTime}ms`);
     }
@@ -90,7 +117,7 @@ function apiGif(queryDict, res) {
     .pipe(res)
     .on('finish', function () {
       console.log(`Rendered after ${Date.now() - startTime}ms`);
-    })
+    });
   });
 }
 
