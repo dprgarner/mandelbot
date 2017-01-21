@@ -4,9 +4,9 @@ const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 
 exports.getKeyframes = function () {
-  const levels = 3;
-  const width = 450;
-  const height = 300;
+  const levels = 22;
+  const width = 900;
+  const height = 600;
   let initialParams = {
     width,
     height,

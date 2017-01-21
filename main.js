@@ -60,13 +60,15 @@ function apiPng(queryDict, res) {
 }
 
 function apiGif(queryDict, res) {
-  let width = null, height = null;
+  let gifWidth = null, gifHeight = null;
   let startTime = Date.now();
 
   getKeyframes()
   .then((keyframes) => {
-    width = keyframes[0].bitmap.width;
-    height = keyframes[0].bitmap.height;
+    let width = keyframes[0].bitmap.width;
+    let height =keyframes[0].bitmap.height;
+    gifWidth = width / 2;
+    gifHeight = height / 2;
 
     let frames = [];
     const framesPerLevel = 5;
@@ -75,15 +77,17 @@ function apiGif(queryDict, res) {
     _.each(keyframes, (baseImage) => {
       _.each(_.range(framesPerLevel), (i) => {
         let scaledImage = baseImage.clone();
-        let newWidth = Math.floor(width * Math.pow(power, i));
-        let newHeight = Math.floor(height * Math.pow(power, i));
+        let newWidth = width * Math.pow(power, i - framesPerLevel);
+        let newHeight = height * Math.pow(power, i - framesPerLevel);
         // Jimp.RESIZE_BEZIER Looks better, but is really slow.
-        scaledImage.resize(newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        scaledImage.resize(
+          newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR
+        );
         scaledImage.crop(
-          (newWidth - width) / 2,
-          (newHeight - height) / 2,
-          width,
-          height
+          (newWidth - gifWidth) / 2,
+          (newHeight - gifHeight) / 2,
+          gifWidth,
+          gifHeight
         );
         frames.push(scaledImage)
         console.log(`Drawn frames ${i} after ${Date.now() - startTime}ms`);
@@ -106,7 +110,7 @@ function apiGif(queryDict, res) {
   })
   .then((stream) => {
     console.log('Creating gif...');
-    let encoder = new GIFEncoder(width, height);
+    let encoder = new GIFEncoder(gifWidth, gifHeight);
     res.writeHead(200, {'Content-Type': 'image/gif'});
 
     stream
