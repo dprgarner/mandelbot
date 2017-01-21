@@ -7,6 +7,8 @@ const url = require('url');
 
 const _  = require('underscore');
 const Jimp = require('jimp');
+const GIFEncoder = require('gifencoder');
+const CombinedStream = require('combined-stream');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
@@ -16,13 +18,13 @@ const PORT = 80;
 function pipeImageTo(image, dest) {
   image.getBuffer(Jimp.MIME_PNG, function (err, buffer) {
     if (err) return console.error(err);
-    var s = new stream.PassThrough();
+    let s = new stream.PassThrough();
     s.end(buffer);
     s.pipe(dest);
   });
 }
 
-function api(queryDict, res) {
+function getParamsWithDefault(queryDict) {
   let params = _.extend({}, {
     width: 512,
     height: 512,
@@ -39,6 +41,12 @@ function api(queryDict, res) {
   params.y = parseFloat(params.y);
   params.scale = parseFloat(params.scale);
 
+  return params;
+}
+
+function apiPng(queryDict, res) {
+  let params = getParamsWithDefault(queryDict);
+
   res.writeHead(200, {'Content-Type': 'image/png'});
   let startTime = Date.now();
   let set = constructSet(params);
@@ -50,6 +58,43 @@ function api(queryDict, res) {
   });
 }
 
+function apiGif(queryDict, res) {
+  let startTime = Date.now();
+  let params = getParamsWithDefault(queryDict);
+  let set = constructSet(params);
+  console.log(`Set constructed after ${Date.now() - startTime}ms`);
+
+  drawMandelbrot(set, params.depth, function (err, image) {
+    if (err) return console.error(err);
+    console.log(`Drawn after ${Date.now() - startTime}ms`);
+    let combined = CombinedStream.create();
+
+    let power = Math.exp(Math.log(2) / 30);
+    console.log(power);
+    for (var i = 0; i < 30; i++) {
+      let image2 = image.clone();
+      let newSize = Math.floor(params.width * Math.pow(power, i));
+      image2.resize(newSize, Jimp.AUTO);
+      image2.crop(0, 0, params.width, params.height);
+
+      let s = new stream.PassThrough();
+      s.end(image2.bitmap.data);
+      combined.append(s);
+      console.log(`Drawn frame ${i} after ${Date.now() - startTime}ms`);
+    }
+
+    res.writeHead(200, {'Content-Type': 'image/gif'});
+    let encoder = new GIFEncoder(params.width, params.height);
+
+    combined.pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
+    .pipe(res)
+    .on('finish', function () {
+      console.log(`Rendered after ${Date.now() - startTime}ms`);
+    })
+  });
+}
+
+// Server
 http.createServer((req, res) => {
   function serveStatic(res, contentType, filePath) {
     res.writeHead(200, {'Content-Type': contentType});
@@ -59,8 +104,10 @@ http.createServer((req, res) => {
   let reqDict = url.parse(req.url, true);
 
   switch (reqDict.pathname) {
-    case '/api/':
-      return api(reqDict.query, res);
+    case '/png/':
+      return apiPng(reqDict.query, res);
+    case '/gif/':
+      return apiGif(reqDict.query, res);
     case '/elm.js':
       return serveStatic(res, 'text/javascript', './elm.js');
     case '/style.css':

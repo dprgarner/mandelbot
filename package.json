@@ -12,7 +12,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "combined-stream": "^1.0.5",
     "elm": "^0.17.1",
+    "gifencoder": "^1.0.6",
     "jimp": "^0.2.27",
     "nodemon": "^1.10.2",
     "underscore": "^1.8.3"

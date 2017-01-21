@@ -223,7 +223,7 @@ getUrl snapshot =
     x = topX + scale * toFloat viewWidth / 2
     y = topY - scale * toFloat viewHeight / 2
   in
-    "/api/?"
+    "/png/?"
     ++ "&width=" ++ toString viewWidth
     ++ "&height=" ++ toString viewHeight
     ++ "&x=" ++ toString x
