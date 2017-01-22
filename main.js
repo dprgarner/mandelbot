@@ -8,11 +8,10 @@ const url = require('url');
 const _  = require('underscore');
 const Jimp = require('jimp');
 const GIFEncoder = require('gifencoder');
-const CombinedStream = require('combined-stream');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
-const getKeyframes = require('./animate').getKeyframes;
+const getAnimatedStream = require('./animate').getAnimatedStream;
 
 const PORT = 80;
 
@@ -62,50 +61,16 @@ function apiPng(queryDict, res) {
 function apiGif(queryDict, res) {
   let startTime = Date.now();
 
-  getKeyframes().then((keyframes) => {
-    let width = keyframes[0].bitmap.width;
-    let height = keyframes[0].bitmap.height;
-    let gifWidth = width / 2;
-    let gifHeight = height / 2;
-
-    let combined = CombinedStream.create();
-    function appendFrame(frame) {
-      let s = new stream.PassThrough();
-      s.end(frame.bitmap.data);
-      combined.append(s);
-    }
-
-    const framesPerLevel = 1;
-    const power = Math.exp(Math.log(2) / framesPerLevel);
-
-    _.each(keyframes, (baseImage, i) => {
-      _.each(_.range(framesPerLevel), (j) => {
-        let scaledImage = baseImage.clone();
-        let newWidth = width * Math.pow(power, -j);
-        let newHeight = height * Math.pow(power, -j);
-
-        scaledImage.crop(
-          width / 2 - newWidth / 2,
-          height / 2 - newHeight / 2,
-          newWidth,
-          newHeight
-        );
-        // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
-        scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
-        appendFrame(scaledImage);
-        console.log(`Drawn frame ${i},${j} after ${Date.now() - startTime}ms`);
-      });
-    });
-
+  getAnimatedStream().then(({stream, width, height}) => {
     console.log('Creating gif...');
-    let encoder = new GIFEncoder(gifWidth, gifHeight);
+    let encoder = new GIFEncoder(width, height);
     res.writeHead(200, {'Content-Type': 'image/gif'});
 
-    combined
+    stream
     .pipe(encoder.createWriteStream({repeat: 0, delay: 500}))
     .pipe(res)
     .on('finish', function () {
-      console.log(`Rendered after ${Date.now() - startTime}ms`);
+      console.log(`Finished after ${Date.now() - startTime}ms`);
     });
   })
   .catch((err) => {
