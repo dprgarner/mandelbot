@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "elm-package install -y",
     "start": "elm-make viewer.elm --output elm.js && node main.js",
-    "watch": "nodemon -e \"js,elm,css\" -i \"elm.js\" -x \"npm start\"",
+    "watch": "nodemon -e \"js,elm,css\" -i \"elm.js\" -x \"node main.js\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

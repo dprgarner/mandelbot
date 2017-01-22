@@ -60,61 +60,49 @@ function apiPng(queryDict, res) {
 }
 
 function apiGif(queryDict, res) {
-  let gifWidth = null, gifHeight = null;
   let startTime = Date.now();
 
-  getKeyframes()
-  .then((keyframes) => {
+  getKeyframes().then((keyframes) => {
     let width = keyframes[0].bitmap.width;
-    let height =keyframes[0].bitmap.height;
-    gifWidth = width / 2;
-    gifHeight = height / 2;
+    let height = keyframes[0].bitmap.height;
+    let gifWidth = width / 2;
+    let gifHeight = height / 2;
 
-    let frames = [];
-    const framesPerLevel = 5;
-    const power = Math.exp(Math.log(2) / framesPerLevel);
-
-    _.each(keyframes, (baseImage) => {
-      _.each(_.range(framesPerLevel), (i) => {
-        let scaledImage = baseImage.clone();
-        let newWidth = width * Math.pow(power, i - framesPerLevel);
-        let newHeight = height * Math.pow(power, i - framesPerLevel);
-        // Jimp.RESIZE_BEZIER Looks better, but is really slow.
-        scaledImage.resize(
-          newWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR
-        );
-        scaledImage.crop(
-          (newWidth - gifWidth) / 2,
-          (newHeight - gifHeight) / 2,
-          gifWidth,
-          gifHeight
-        );
-        frames.push(scaledImage)
-        console.log(`Drawn frames ${i} after ${Date.now() - startTime}ms`);
-      });
-    });
-
-    return frames;
-  })
-  .then((frames) => {
-    console.log('Combining frames...');
     let combined = CombinedStream.create();
-
-    _.each(frames, (frame) => {
+    function appendFrame(frame) {
       let s = new stream.PassThrough();
       s.end(frame.bitmap.data);
       combined.append(s);
+    }
+
+    const framesPerLevel = 1;
+    const power = Math.exp(Math.log(2) / framesPerLevel);
+
+    _.each(keyframes, (baseImage, i) => {
+      _.each(_.range(framesPerLevel), (j) => {
+        let scaledImage = baseImage.clone();
+        let newWidth = width * Math.pow(power, -j);
+        let newHeight = height * Math.pow(power, -j);
+
+        scaledImage.crop(
+          width / 2 - newWidth / 2,
+          height / 2 - newHeight / 2,
+          newWidth,
+          newHeight
+        );
+        // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
+        scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+        appendFrame(scaledImage);
+        console.log(`Drawn frame ${i},${j} after ${Date.now() - startTime}ms`);
+      });
     });
 
-    return combined;
-  })
-  .then((stream) => {
     console.log('Creating gif...');
     let encoder = new GIFEncoder(gifWidth, gifHeight);
     res.writeHead(200, {'Content-Type': 'image/gif'});
 
-    stream
-    .pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
+    combined
+    .pipe(encoder.createWriteStream({repeat: 0, delay: 500}))
     .pipe(res)
     .on('finish', function () {
       console.log(`Rendered after ${Date.now() - startTime}ms`);
