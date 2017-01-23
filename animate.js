@@ -22,50 +22,44 @@ const getPositionFromLevel = (base) => (maxLevels) => (level) => {
   } else {
     return 1;
   }
-}
-const getWidthFromLevel = (level) => Math.pow(2, -level);
+};
 
-exports.generatePath = function (params) {
+const generateFrameData = (params) => (level) => {
   const originX = -0.5;
   const originY = 0;
-  const destX = params.x;
-  const destY = params.y;
-  const levels = params.levels;
-
+  const {x, y, levels, width, height} = params;
   const pos = getPositionFromLevel(3)(levels);
-  let frameData = [];
-  for (var i = 0; i <= levels; i++) {
-    frameData.push({
-      x: originX + (destX - originX) * pos(i),
-      y: originY + (destY - originY) * pos(i),
-      scale: Math.pow(2, -7) * getWidthFromLevel(i),
-      depth: 500 + 100 * i,
-    });
-  }
-  return frameData;
-}
 
-exports.getKeyframes = function () {
-  const levels = 21;
-  const width = 900 / 2;
-  const height = 600 / 2;
+  return {
+    level,
+    scale: Math.pow(2, -7 -level),
+    width,
+    height,
+    x: originX + (x - originX) * pos(level),
+    y: originY + (y - originY) * pos(level),
+    depth: 500 + Math.floor(100 * level),
+  };
+};
 
-  const originX = -0.5;
-  const originY = 0;
+function getKeyframes() {
   const destX = -0.30240590;
   const destY =  0.66221035;
 
-  let initialParams = {width, height};
+  const levels = 10;
+  const width = 900 / 2;
+  const height = 600 / 2;
 
-  let keyframes = exports.generatePath({x: destX, y: destY, levels});
+  const getFrameData = generateFrameData({x: destX, y: destY, levels, width, height});
+  let frames = [];
+  for (var level = 0; level <= levels; level += 1) {
+    frames.push(getFrameData(level));
+  }
 
-  return Promise.all(_.map(keyframes, ({x, y, scale, depth}, i) =>
+  return Promise.all(_.map(frames, (frame, i) =>
     new Promise((resolve, reject) => {
-      let set = constructSet(_.extend({}, initialParams, {
-        depth, x, y, scale
-      }));
+      let set = constructSet(frame);
 
-      drawMandelbrot(set, depth, function (err, image) {
+      drawMandelbrot(set, frame.depth, function (err, image) {
         if (err) return reject(err);
         console.log(`Rendered image ${i}`);
         return resolve(image);
@@ -77,7 +71,7 @@ exports.getKeyframes = function () {
 exports.getAnimatedStream = function () {
   let startTime = Date.now();
 
-  return exports.getKeyframes().then((keyframes) => {
+  return getKeyframes().then((keyframes) => {
     let width = keyframes[0].bitmap.width;
     let height = keyframes[0].bitmap.height;
     let gifWidth = width / 2;
