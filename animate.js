@@ -9,32 +9,60 @@ const Jimp = require('jimp');
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 
+// Trajectory of the centre of the viewport: start at origin, go to
+// destination, decrease down a level every time you go a fraction ('base') of
+// the remaining distance to the destination. The width of the viewport at
+// each level is half the width of the preceding level.
+
+const getPositionFromLevel = (base) => (maxLevels) => (level) => {
+  if (level < maxLevels - 2) {
+    return (1 - Math.pow(base, - level));
+  } else if (level < maxLevels - 1) {
+    return 1 - Math.pow(base, 2 - maxLevels) * (maxLevels - 1 - level);
+  } else {
+    return 1;
+  }
+}
+const getWidthFromLevel = (level) => Math.pow(2, -level);
+
+exports.generatePath = function (params) {
+  const originX = -0.5;
+  const originY = 0;
+  const destX = params.x;
+  const destY = params.y;
+  const levels = params.levels;
+
+  const pos = getPositionFromLevel(3)(levels);
+  let frameData = [];
+  for (var i = 0; i <= levels; i++) {
+    frameData.push({
+      x: originX + (destX - originX) * pos(i),
+      y: originY + (destY - originY) * pos(i),
+      scale: Math.pow(2, -7) * getWidthFromLevel(i),
+      depth: 500 + 100 * i,
+    });
+  }
+  return frameData;
+}
+
 exports.getKeyframes = function () {
-  const levels = 5;
+  const levels = 21;
   const width = 900 / 2;
   const height = 600 / 2;
 
   const originX = -0.5;
   const originY = 0;
-  const destX = -0.3024056703;
-  const destY = 0.66221017395;
+  const destX = -0.30240590;
+  const destY =  0.66221035;
 
-  let initialParams = {
-    width,
-    height,
-    depth: 500,
-    scale: Math.pow(2, -7),
-  };
+  let initialParams = {width, height};
 
-  return Promise.all(_.map(_.range(levels), (i) =>
+  let keyframes = exports.generatePath({x: destX, y: destY, levels});
+
+  return Promise.all(_.map(keyframes, ({x, y, scale, depth}, i) =>
     new Promise((resolve, reject) => {
-      let depth = 500 + 100 * i;
-      let scaleFactor = (1 - Math.pow(2, -i)) / (1 - Math.pow(2, -levels));
       let set = constructSet(_.extend({}, initialParams, {
-        depth,
-        x: originX + (destX - originX) * scaleFactor,
-        y: originY + (destY - originY) * scaleFactor,
-        scale: initialParams.scale * Math.pow(2, -i),
+        depth, x, y, scale
       }));
 
       drawMandelbrot(set, depth, function (err, image) {
