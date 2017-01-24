@@ -48,28 +48,19 @@ function generateKeyframeImages(params) {
   return Promise.all(_.map(frames, (frame, i) => {
     let set = constructSet(_.extend({}, {width, height}, frame));
     console.log(`Constructed Mandelbrot set #${i}`)
-    return drawMandelbrot(set, frame.depth)
+    return drawMandelbrot(set, frame.depth);
   }));
 };
 
-exports.getAnimatedStream = function () {
+exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gifHeight}) {
   let startTime = Date.now();
 
-  const width = 900;
-  const height = 600;
-  const levels = 20;
+  const width = gifWidth * 2;
+  const height = gifHeight * 2;
 
-  const params = {
-    x: -0.30240590,
-    y:  0.66221035,
-    levels,
-    width,
-    height,
-  };
+  const params = {x, y, levels, width, height};
 
   return generateKeyframeImages(params).then((keyframes) => {
-    const gifWidth = width / 2;
-    const gifHeight = height / 2;
     let combinedStream = CombinedStream.create();
 
     function appendFrame(frame) {
@@ -95,12 +86,12 @@ exports.getAnimatedStream = function () {
 
       let scaledImage = keyFrame.clone();
       scaledImage.crop(left, top, width * r, height * r);
-      scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
-      // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
+      scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
       appendFrame(scaledImage);
       console.log(`Drawn frame ${i++} at level ${Math.floor(level)} after ${Date.now() - startTime}ms`);
     }
 
-    return {stream: combinedStream, width: gifWidth, height: gifHeight};
+    return combinedStream;
   });
 };

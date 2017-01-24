@@ -58,7 +58,13 @@ function apiPng(queryDict, res) {
 function apiGif(queryDict, res) {
   let startTime = Date.now();
 
-  getAnimatedStream().then(({stream, width, height}) => {
+  const width = 900 / 4;
+  const height = 600 / 4;
+  const levels = 5;
+  const x = -0.30240590;
+  const y = 0.66221035;
+
+  getAnimatedStream({width, height, x, y, levels}).then((stream) => {
     console.log('Creating gif...');
     let encoder = new GIFEncoder(width, height);
     res.writeHead(200, {'Content-Type': 'image/gif'});
