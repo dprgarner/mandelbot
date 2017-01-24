@@ -52,10 +52,7 @@ function apiPng(queryDict, res) {
   let set = constructSet(params);
   console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  drawMandelbrot(set, params.depth, function (err, image) {
-    if (err) return console.error(err);
-    pipeImageTo(image, res);
-  });
+  drawMandelbrot(set, params.depth).then((image) => pipeImageTo(image, res));
 }
 
 function apiGif(queryDict, res) {

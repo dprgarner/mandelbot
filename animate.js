@@ -27,61 +27,68 @@ const getPositionFromLevel = (base) => (maxLevels) => (level) => {
 const generateFrameData = (params) => (level) => {
   const originX = -0.5;
   const originY = 0;
-  const {x, y, levels, width, height} = params;
+  const {x, y, levels} = params;
   const pos = getPositionFromLevel(3)(levels);
 
   return {
     level,
     scale: Math.pow(2, -7 -level),
-    width,
-    height,
     x: originX + (x - originX) * pos(level),
     y: originY + (y - originY) * pos(level),
     depth: 500 + Math.floor(100 * level),
   };
 };
 
-function getKeyframes() {
-  const destX = -0.30240590;
-  const destY =  0.66221035;
+function generateKeyframeImages(params) {
+  const {x, y, levels, width, height} = params
 
-  const levels = 10;
-  const width = 900 / 2;
-  const height = 600 / 2;
+  const getFrameData = generateFrameData({x, y, levels});
+  const frames = _.map(_.range(levels), getFrameData);
 
-  const getFrameData = generateFrameData({x: destX, y: destY, levels, width, height});
-  let frames = [];
-  for (var level = 0; level <= levels; level += 1) {
-    frames.push(getFrameData(level));
-  }
-
-  return Promise.all(_.map(frames, (frame, i) =>
-    new Promise((resolve, reject) => {
-      let set = constructSet(frame);
-
-      drawMandelbrot(set, frame.depth, function (err, image) {
-        if (err) return reject(err);
-        console.log(`Rendered image ${i}`);
-        return resolve(image);
-      });
-    })
-  ));
+  return Promise.all(_.map(frames, (frame, i) => {
+    let set = constructSet(_.extend({}, {width, height}, frame));
+    console.log(`Constructed Mandelbrot set #${i}`)
+    return drawMandelbrot(set, frame.depth)
+  }));
 };
 
 exports.getAnimatedStream = function () {
   let startTime = Date.now();
 
-  return getKeyframes().then((keyframes) => {
-    let width = keyframes[0].bitmap.width;
-    let height = keyframes[0].bitmap.height;
-    let gifWidth = width / 2;
-    let gifHeight = height / 2;
+  const width = 900 / 2;
+  const height = 600 / 2;
+  const levels = 4;
 
-    let combined = CombinedStream.create();
+  const params = {
+    x: -0.30240590,
+    y:  0.66221035,
+    levels,
+    width,
+    height,
+  };
+
+  return generateKeyframeImages(params).then((keyframes) => {
+    const gifWidth = width / 2;
+    const gifHeight = height / 2;
+    let combinedStream = CombinedStream.create();
+
     function appendFrame(frame) {
       let s = new stream.PassThrough();
       s.end(frame.bitmap.data);
-      combined.append(s);
+      combinedStream.append(s);
+    }
+
+    let frames = [];
+    const getFrameData = generateFrameData(params);
+    for (let level = 0; level < levels; level += 0.25) {
+      let sliceFrameData = getFrameData(level);
+      let keyFrameData = getFrameData(Math.floor(level));
+      let keyFrame = keyframes[Math.floor(level)];
+      console.log(sliceFrameData); // x, y, scale, depth
+
+      // TOOD: Figure out howmuch of keyFrame should be sliced by looking at
+      // sliceFrameData and keyFrameData - there should be enough info, together with width.
+      // Crop, resize, and append this image.
     }
 
     const framesPerLevel = 1;
@@ -105,6 +112,6 @@ exports.getAnimatedStream = function () {
         console.log(`Drawn frame ${i},${j} after ${Date.now() - startTime}ms`);
       });
     });
-    return {stream: combined, width: gifWidth, height: gifHeight};
+    return {stream: combinedStream, width: gifWidth, height: gifHeight};
   });
-}
+};
