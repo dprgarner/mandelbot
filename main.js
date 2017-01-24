@@ -64,7 +64,7 @@ function apiGif(queryDict, res) {
     res.writeHead(200, {'Content-Type': 'image/gif'});
 
     stream
-    .pipe(encoder.createWriteStream({repeat: 0, delay: 500}))
+    .pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
     .pipe(res)
     .on('finish', function () {
       console.log(`Finished after ${Date.now() - startTime}ms`);

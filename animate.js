@@ -55,9 +55,9 @@ function generateKeyframeImages(params) {
 exports.getAnimatedStream = function () {
   let startTime = Date.now();
 
-  const width = 900 / 2;
-  const height = 600 / 2;
-  const levels = 4;
+  const width = 900;
+  const height = 600;
+  const levels = 20;
 
   const params = {
     x: -0.30240590,
@@ -78,40 +78,29 @@ exports.getAnimatedStream = function () {
       combinedStream.append(s);
     }
 
-    let frames = [];
     const getFrameData = generateFrameData(params);
+    let i = 0;
     for (let level = 0; level < levels; level += 0.25) {
       let sliceFrameData = getFrameData(level);
       let keyFrameData = getFrameData(Math.floor(level));
       let keyFrame = keyframes[Math.floor(level)];
-      console.log(sliceFrameData); // x, y, scale, depth
 
-      // TOOD: Figure out howmuch of keyFrame should be sliced by looking at
-      // sliceFrameData and keyFrameData - there should be enough info, together with width.
-      // Crop, resize, and append this image.
+      // Ratio of slice frame dimensions to keyframe dimensions
+      let r = sliceFrameData.scale / keyFrameData.scale;
+      // Difference of centres, in pixels
+      let deltaX = (sliceFrameData.x - keyFrameData.x) / keyFrameData.scale;
+      let deltaY = (sliceFrameData.y - keyFrameData.y) / keyFrameData.scale;
+      let left = Math.floor(deltaX + (1 - r) * width / 2);
+      let top = Math.floor(- deltaY + (1 - r) * height / 2);
+
+      let scaledImage = keyFrame.clone();
+      scaledImage.crop(left, top, width * r, height * r);
+      scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
+      // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
+      appendFrame(scaledImage);
+      console.log(`Drawn frame ${i++} at level ${Math.floor(level)} after ${Date.now() - startTime}ms`);
     }
 
-    const framesPerLevel = 1;
-    const power = Math.exp(Math.log(2) / framesPerLevel);
-
-    _.each(keyframes, (baseImage, i) => {
-      _.each(_.range(framesPerLevel), (j) => {
-        let scaledImage = baseImage.clone();
-        let newWidth = width * Math.pow(power, -j);
-        let newHeight = height * Math.pow(power, -j);
-
-        scaledImage.crop(
-          width / 2 - newWidth / 2,
-          height / 2 - newHeight / 2,
-          newWidth,
-          newHeight
-        );
-        // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
-        scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
-        appendFrame(scaledImage);
-        console.log(`Drawn frame ${i},${j} after ${Date.now() - startTime}ms`);
-      });
-    });
     return {stream: combinedStream, width: gifWidth, height: gifHeight};
   });
 };
