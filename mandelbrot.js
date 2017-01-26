@@ -1,6 +1,6 @@
 'use strict';
 
-const Jimp = require('jimp');
+const PixelStream = require('pixel-stream');
 
 function convergesWithin(depth, cRe, cIm) {
   // z -> z' = z^2 + c
@@ -49,19 +49,22 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
       if (mandelbrot[y][x])
         min = Math.min(min, mandelbrot[y][x]);
 
-  return new Promise((resolve, reject) => {
-    new Jimp(width, height, 0x000000ff, function (err, image) {
-      if (err) return reject(err);
-
-      image.scan(0, 0, width, height, function (x, y, idx) {
-        let iterations = mandelbrot[y][x];
-        if (!iterations) return;
-        this.bitmap.data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
-        this.bitmap.data[idx+1] = this.bitmap.data[idx];
-        this.bitmap.data[idx+2] = 255 - this.bitmap.data[idx];
-      });
-
-      resolve(image);
-    })
-  });
+  let s = new PixelStream(width, height, {colorSpace: 'rgb'})
+  let data = Buffer.alloc(width * height * 3);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let iterations = mandelbrot[y][x];
+      let idx = (y * width + x) * 3;
+      if (!iterations) {
+        data[idx] = data[idx + 1] = data[idx + 2] = 0;
+      } else {
+        data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
+        data[idx + 1] = data[idx];
+        data[idx + 2] = 255 - data[idx];
+      }
+    }
+  }
+  s.push(data);
+  s.end()
+  return s;
 };

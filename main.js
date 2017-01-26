@@ -6,23 +6,15 @@ const stream = require('stream');
 const url = require('url');
 
 const _  = require('underscore');
-const Jimp = require('jimp');
-const GIFEncoder = require('gifencoder');
+const neuquant = require('neuquant');
+const GIFEncoder = require('gif-stream/encoder');
+const PNGEncoder = require('png-stream/encoder');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const getAnimatedStream = require('./animate').getAnimatedStream;
 
 const PORT = 80;
-
-function pipeImageTo(image, dest) {
-  image.getBuffer(Jimp.MIME_PNG, function (err, buffer) {
-    if (err) return console.error(err);
-    let s = new stream.PassThrough();
-    s.end(buffer);
-    s.pipe(dest);
-  });
-}
 
 function getParamsWithDefault(queryDict) {
   let params = _.extend({}, {
@@ -47,12 +39,19 @@ function getParamsWithDefault(queryDict) {
 function apiPng(queryDict, res) {
   let params = getParamsWithDefault(queryDict);
 
-  res.writeHead(200, {'Content-Type': 'image/png'});
   let startTime = Date.now();
   let set = constructSet(params);
   console.log(`Set constructed after ${Date.now() - startTime}ms`);
 
-  drawMandelbrot(set, params.depth).then((image) => pipeImageTo(image, res));
+  let s = drawMandelbrot(set, params.depth);
+
+  res.writeHead(200, {'Content-Type': 'image/png'});
+
+  s.pipe(new PNGEncoder(params.width, params.height, {colorSpace: 'rgb'}))
+  .pipe(res)
+  .on('finish', function () {
+    console.log(`Finished after ${Date.now() - startTime}ms`);
+  });
 }
 
 function apiGif(queryDict, res) {
@@ -64,21 +63,16 @@ function apiGif(queryDict, res) {
   const x = -0.30240590;
   const y = 0.66221035;
 
-  getAnimatedStream({width, height, x, y, levels}).then((stream) => {
-    console.log('Creating gif...');
-    let encoder = new GIFEncoder(width, height);
-    res.writeHead(200, {'Content-Type': 'image/gif'});
+  let params = getParamsWithDefault(queryDict);
+  let s = drawMandelbrot(constructSet(params), params.depth);
 
-    stream
-    .pipe(encoder.createWriteStream({repeat: 0, delay: 0}))
-    .pipe(res)
-    .on('finish', function () {
-      console.log(`Finished after ${Date.now() - startTime}ms`);
-    });
-  })
-  .catch((err) => {
-    console.error(err);
-    return res.end(err.message);
+  res.writeHead(200, {'Content-Type': 'image/gif'});
+
+  s.pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
+  .pipe(new GIFEncoder)
+  .pipe(res)
+  .on('finish', function () {
+    console.log(`Finished after ${Date.now() - startTime}ms`);
   });
 }
 

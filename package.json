@@ -14,11 +14,13 @@
   "dependencies": {
     "combined-stream": "^1.0.5",
     "elm": "^0.17.1",
-    "gifencoder": "^1.0.6",
+    "gif-stream": "^1.1.0",
     "gifsicle": "^3.0.4",
     "image-min": "^0.3.2",
-    "jimp": "^0.2.27",
+    "neuquant": "^1.0.2",
     "nodemon": "^1.10.2",
+    "pixel-stream": "^1.0.3",
+    "png-stream": "^1.0.5",
     "underscore": "^1.8.3"
   }
 }
