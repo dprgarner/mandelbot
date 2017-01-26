@@ -65,6 +65,6 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
     }
   }
   s.push(data);
-  s.end()
+  s.end();
   return s;
 };

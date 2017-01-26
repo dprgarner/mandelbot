@@ -13,6 +13,7 @@ const PNGEncoder = require('png-stream/encoder');
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const getAnimatedStream = require('./animate').getAnimatedStream;
+const generateKeyframeImages = require('./animate').generateKeyframeImages;
 
 const PORT = 80;
 
@@ -57,23 +58,36 @@ function apiPng(queryDict, res) {
 function apiGif(queryDict, res) {
   let startTime = Date.now();
 
-  const width = 900 / 4;
-  const height = 600 / 4;
-  const levels = 5;
+  const width = 900 / 2;
+  const height = 600 / 2;
+  const levels = 22;
   const x = -0.30240590;
   const y = 0.66221035;
 
-  let params = getParamsWithDefault(queryDict);
-  let s = drawMandelbrot(constructSet(params), params.depth);
+  let params = {width, height, x, y, levels};
 
-  res.writeHead(200, {'Content-Type': 'image/gif'});
-
-  s.pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
-  .pipe(new GIFEncoder)
-  .pipe(res)
-  .on('finish', function () {
-    console.log(`Finished after ${Date.now() - startTime}ms`);
+  getAnimatedStream(params)
+  .then((outputFile) => {
+    res.writeHead(200, {'Content-Type': 'image/gif'});
+    fs.createReadStream(outputFile)
+    .pipe(res)
+    .on('finish', () => {
+      console.log(`Finished after ${Date.now() - startTime}ms`);
+    });
+  })
+  .catch((err) => {
+    console.error.bind(console)
+    res.status(500).end(err);
   });
+
+  // let s = drawMandelbrot(constructSet(params), params.depth);
+  // res.writeHead(200, {'Content-Type': 'image/gif'});
+
+  // s.pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
+  // .pipe(new GIFEncoder)
+  // .pipe(res)
+  // .on('finish', function () {
+  // });
 }
 
 // Server

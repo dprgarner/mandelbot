@@ -1,10 +1,14 @@
 'use strict';
 
+const fs = require('fs');
 const stream = require('stream');
+const {execFile} = require('child_process');
 
 const _  = require('underscore');
 const CombinedStream = require('combined-stream');
-const Jimp = require('jimp');
+const GIFEncoder = require('gif-stream/encoder');
+const gifsicle = require('gifsicle');
+const neuquant = require('neuquant');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
@@ -39,7 +43,7 @@ const generateFrameData = (params) => (level) => {
   };
 };
 
-function generateKeyframeImages(params) {
+exports.generateKeyframeImages = function(params) {
   const {x, y, levels, width, height} = params
 
   const getFrameData = generateFrameData({x, y, levels});
@@ -48,7 +52,22 @@ function generateKeyframeImages(params) {
   return Promise.all(_.map(frames, (frame, i) => {
     let set = constructSet(_.extend({}, {width, height}, frame));
     console.log(`Constructed Mandelbrot set #${i}`)
-    return drawMandelbrot(set, frame.depth);
+
+    return new Promise((resolve, reject) => {
+      let frameLocation = `./temp/key-${i}.gif`;
+      drawMandelbrot(set, frame.depth)
+      .pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
+      .pipe(new GIFEncoder)
+      .pipe(fs.createWriteStream(frameLocation))
+      .on('finish', (err) => {
+        console.log(`Outputted keyframe to ${frameLocation}`)
+        if (err) {
+          return reject(err);
+        } else {
+          resolve(frameLocation);
+        }
+      });
+    });
   }));
 };
 
@@ -60,18 +79,11 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
 
   const params = {x, y, levels, width, height};
 
-  return generateKeyframeImages(params).then((keyframes) => {
-    let combinedStream = CombinedStream.create();
-
-    function appendFrame(frame) {
-      let s = new stream.PassThrough();
-      s.end(frame.bitmap.data);
-      combinedStream.append(s);
-    }
-
+  return exports.generateKeyframeImages(params)
+  .then((keyframes) => {
     const getFrameData = generateFrameData(params);
-    let i = 0;
-    for (let level = 0; level < levels; level += 0.25) {
+    
+    return Promise.all(_.map(_.range(0, levels, 0.25), (level, i) => {
       let sliceFrameData = getFrameData(level);
       let keyFrameData = getFrameData(Math.floor(level));
       let keyFrame = keyframes[Math.floor(level)];
@@ -83,15 +95,36 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
       let deltaY = (sliceFrameData.y - keyFrameData.y) / keyFrameData.scale;
       let left = Math.floor(deltaX + (1 - r) * width / 2);
       let top = Math.floor(- deltaY + (1 - r) * height / 2);
+      let newWidth = Math.floor(r * width);
+      let newHeight = Math.floor(r * height);
 
-      let scaledImage = keyFrame.clone();
-      scaledImage.crop(left, top, width * r, height * r);
-      // scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_BEZIER);
-      scaledImage.resize(gifWidth, Jimp.AUTO, Jimp.RESIZE_NEAREST_NEIGHBOR);
-      appendFrame(scaledImage);
-      console.log(`Drawn frame ${i++} at level ${Math.floor(level)} after ${Date.now() - startTime}ms`);
-    }
+      return new Promise((resolve, reject) => {
+        let outputFile = `./temp/${i}.gif`;
+        execFile(gifsicle, [
+          '--crop', `${left},${top}+${newWidth}x${newHeight}`,
+          '--resize', `${gifWidth}x${gifHeight}`,
+          keyFrame,
+          '-o', `${outputFile}`,
+          ], err => {
+            if (err) return reject(err);
+            console.log(`Drawn frame ${i} at level ${Math.floor(level)} after ${Date.now() - startTime}ms`);
+            resolve(i);
+        });
+      });
+    }));
+  })
+  .then((frames) => {
+    const paths = _.map(frames, (frame) => `./temp/${frame}.gif`);
 
-    return combinedStream;
+    return new Promise((resolve, reject) => {
+      const outputFile = './temp/output.gif';
+      execFile(gifsicle, paths.concat([
+        '-o', outputFile
+      ]), (err) => {
+        if (err) return reject(err);
+        console.log(`Collated gif after ${Date.now() - startTime}ms`);
+        resolve(outputFile);
+      });
+    });
   });
 };
