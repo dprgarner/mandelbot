@@ -84,8 +84,14 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
   return exports.generateKeyframeImages(params)
   .then((keyframes) => {
     const getFrameData = generateFrameData(params);
-    
-    return Promise.all(_.map(_.range(0, levels, 0.25), (level, i) => {
+
+    const approxFramesPerLevel = 10; // Not sure what to call this.
+    const steps = levels * approxFramesPerLevel;
+    const levelsRange = _.map(_.range(0, steps), (step) => {
+      return levels * sinusoidalInOut(step / steps);
+    });
+
+    return Promise.all(_.map(levelsRange, (level, i) => {
       let sliceFrameData = getFrameData(level);
       let keyFrameData = getFrameData(Math.floor(level));
       let keyFrame = keyframes[Math.floor(level)];
@@ -123,8 +129,9 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
       const outputFile = './temp/output.gif';
       execFile(gifsicle, [
         '-l',
-        '-d10',
+        '-d6',
       ].concat(paths).concat([
+        '-O',
         '-o', outputFile
       ]), (err) => {
         if (err) return reject(err);

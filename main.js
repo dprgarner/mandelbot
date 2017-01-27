@@ -76,8 +76,9 @@ function apiGif(queryDict, res) {
     });
   })
   .catch((err) => {
-    console.error.bind(console)
-    res.status(500).end(err);
+    console.error(err);
+    res.writeHead(500);
+    res.end(err);
   });
 }
 
