@@ -28,6 +28,7 @@ const getPositionFromLevel = (base) => (maxLevels) => (level) => {
   }
 };
 
+
 const generateFrameData = (params) => (level) => {
   const originX = -0.5;
   const originY = 0;
@@ -43,35 +44,35 @@ const generateFrameData = (params) => (level) => {
   };
 };
 
-exports.generateKeyframeImages = function(params) {
+function generateKeyFrameImages(params) {
   const {x, y, levels, width, height} = params
+  const frames = _.map(_.range(levels), generateFrameData({x, y, levels}));
 
-  const getFrameData = generateFrameData({x, y, levels});
-  const frames = _.map(_.range(levels), getFrameData);
+  return Promise.all(_.map(frames, (frame, i) =>
+    new Promise((resolve, reject) => {
+      let set = constructSet(_.extend({}, {width, height}, frame));
+      console.log(`Constructed Mandelbrot set #${i}`);
 
-  return Promise.all(_.map(frames, (frame, i) => {
-    let set = constructSet(_.extend({}, {width, height}, frame));
-    console.log(`Constructed Mandelbrot set #${i}`);
-
-    return new Promise((resolve, reject) => {
       let frameLocation = `./temp/key-${i}.gif`;
-      let s = drawMandelbrot(set, frame.depth);
-
-      console.log(`Saving mandelbrot set #${i}`);
-      s.pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
+      drawMandelbrot(set, frame.depth)
+      .pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
       .pipe(new GIFEncoder)
       .pipe(fs.createWriteStream(frameLocation))
       .on('finish', (err) => {
-        console.log(`Outputted keyframe to ${frameLocation}`);
+        console.log(`Outputted keyFrame to ${frameLocation}`);
         if (err) {
-          return reject(err);
+          reject(err);
         } else {
           resolve(frameLocation);
         }
       });
-    });
-  }));
-};
+    })
+  ));
+}
+
+function sinusoidalInOut(k) {
+  return 0.5 * (1 - Math.cos(Math.PI * k));
+}
 
 exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gifHeight}) {
   let startTime = Date.now();
@@ -81,8 +82,8 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
 
   const params = {x, y, levels, width, height};
 
-  return exports.generateKeyframeImages(params)
-  .then((keyframes) => {
+  return generateKeyFrameImages(params)
+  .then((keyFrames) => {
     const getFrameData = generateFrameData(params);
 
     const approxFramesPerLevel = 10; // Not sure what to call this.
@@ -91,12 +92,11 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
       return levels * sinusoidalInOut(step / steps);
     });
 
-    return Promise.all(_.map(levelsRange, (level, i) => {
+    return _.map(levelsRange, (level, i) => {
       let sliceFrameData = getFrameData(level);
       let keyFrameData = getFrameData(Math.floor(level));
-      let keyFrame = keyframes[Math.floor(level)];
 
-      // Ratio of slice frame dimensions to keyframe dimensions
+      // Ratio of slice frame dimensions to keyFrame dimensions
       let r = sliceFrameData.scale / keyFrameData.scale;
       // Difference of centres, in pixels
       let deltaX = (sliceFrameData.x - keyFrameData.x) / keyFrameData.scale;
@@ -106,25 +106,39 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
       let newWidth = Math.floor(r * width);
       let newHeight = Math.floor(r * height);
 
-      return new Promise((resolve, reject) => {
-        let outputFile = `./temp/${i}.gif`;
-        execFile(gifsicle, [
-          '--crop', `${left},${top}+${newWidth}x${newHeight}`,
-          '--resize-method', 'box',
-          '--resize', `${gifWidth}x${gifHeight}`,
-          keyFrame,
-          '-o', `${outputFile}`,
-          ], err => {
-            if (err) return reject(err);
-            console.log(`Drawn frame ${i} at level ${Math.floor(level)} after ${Date.now() - startTime}ms`);
-            resolve(i);
-        });
-      });
-    }));
+      return {
+        frameNumber: i,
+        left,
+        top,
+        newWidth,
+        newHeight,
+        keyFrame: keyFrames[Math.floor(level)],
+      };
+    });
   })
-  .then((frames) => {
-    const paths = _.map(frames, (frame) => `./temp/${frame}.gif`);
-
+  .then((framesData) => Promise.all(
+    _.map(framesData, ({frameNumber, left, top, newWidth, newHeight, keyFrame}) =>
+      new Promise((resolve, reject) => {
+        let outputFile = `./temp/${frameNumber}.gif`;
+        execFile(
+          gifsicle,
+          [
+            '--crop', `${left},${top}+${newWidth}x${newHeight}`,
+            '--resize-method', 'box',
+            '--resize', `${gifWidth}x${gifHeight}`,
+            keyFrame,
+            '-o', `${outputFile}`,
+          ],
+          (err) => {
+            if (err) return reject(err);
+            console.log(`Drawn frame ${frameNumber} after ${Date.now() - startTime}ms`);
+            resolve(outputFile);
+          }
+        );
+      })
+    )
+  ))
+  .then((paths) => {
     return new Promise((resolve, reject) => {
       const outputFile = './temp/output.gif';
       execFile(gifsicle, [

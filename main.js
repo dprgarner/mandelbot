@@ -13,7 +13,6 @@ const PNGEncoder = require('png-stream/encoder');
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const getAnimatedStream = require('./animate').getAnimatedStream;
-const generateKeyframeImages = require('./animate').generateKeyframeImages;
 
 const PORT = 80;
 
