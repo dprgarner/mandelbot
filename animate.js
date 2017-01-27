@@ -51,16 +51,18 @@ exports.generateKeyframeImages = function(params) {
 
   return Promise.all(_.map(frames, (frame, i) => {
     let set = constructSet(_.extend({}, {width, height}, frame));
-    console.log(`Constructed Mandelbrot set #${i}`)
+    console.log(`Constructed Mandelbrot set #${i}`);
 
     return new Promise((resolve, reject) => {
       let frameLocation = `./temp/key-${i}.gif`;
-      drawMandelbrot(set, frame.depth)
-      .pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
+      let s = drawMandelbrot(set, frame.depth);
+
+      console.log(`Saving mandelbrot set #${i}`);
+      s.pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
       .pipe(new GIFEncoder)
       .pipe(fs.createWriteStream(frameLocation))
       .on('finish', (err) => {
-        console.log(`Outputted keyframe to ${frameLocation}`)
+        console.log(`Outputted keyframe to ${frameLocation}`);
         if (err) {
           return reject(err);
         } else {
@@ -102,6 +104,7 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
         let outputFile = `./temp/${i}.gif`;
         execFile(gifsicle, [
           '--crop', `${left},${top}+${newWidth}x${newHeight}`,
+          '--resize-method', 'box',
           '--resize', `${gifWidth}x${gifHeight}`,
           keyFrame,
           '-o', `${outputFile}`,
@@ -118,7 +121,10 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
 
     return new Promise((resolve, reject) => {
       const outputFile = './temp/output.gif';
-      execFile(gifsicle, paths.concat([
+      execFile(gifsicle, [
+        '-l',
+        '-d10',
+      ].concat(paths).concat([
         '-o', outputFile
       ]), (err) => {
         if (err) return reject(err);

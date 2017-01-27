@@ -79,15 +79,6 @@ function apiGif(queryDict, res) {
     console.error.bind(console)
     res.status(500).end(err);
   });
-
-  // let s = drawMandelbrot(constructSet(params), params.depth);
-  // res.writeHead(200, {'Content-Type': 'image/gif'});
-
-  // s.pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
-  // .pipe(new GIFEncoder)
-  // .pipe(res)
-  // .on('finish', function () {
-  // });
 }
 
 // Server
