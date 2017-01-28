@@ -1,19 +1,16 @@
 {
-  "name": "mandelbrot-js",
+  "name": "mandelbot",
   "version": "1.0.0",
   "description": "",
   "main": "create.js",
   "scripts": {
-    "start": "node create.js",
-    "watch": "nodemon -e \"js\" -x \"node create.js\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node create.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "combined-stream": "^1.0.5",
     "gif-stream": "^1.1.0",
-    "gifsicle": "^3.0.4",
     "image-min": "^0.3.2",
     "md5": "^2.2.1",
     "neuquant": "^1.0.2",
