@@ -59,7 +59,7 @@ function apiGif(queryDict, res) {
 
   const width = 900 / 2;
   const height = 600 / 2;
-  const levels = 21;
+  const levels = 10;
   const x = -0.30240589;
   const y = 0.66221035;
 

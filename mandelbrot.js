@@ -40,15 +40,30 @@ exports.constructSet = function(params) {
 };
 
 exports.drawMandelbrot = function(mandelbrot, depth) {
+  let startTime = Date.now();
   let width = mandelbrot[0].length;
   let height = mandelbrot.length;
   let f = 255 / Math.log(depth);
 
-  let min = depth;
+  let colorR = {};
+  let colorG = {};
+  let colorB = {};
+
+  let minIterations = depth;
+  let maxIterations = 0;
   for (let y = 0; y < height; y++)
     for (let x = 0; x < width; x++)
-      if (mandelbrot[y][x])
-        min = Math.min(min, mandelbrot[y][x]);
+      if (mandelbrot[y][x]) {
+        minIterations = Math.min(minIterations, mandelbrot[y][x]);
+        maxIterations = Math.max(maxIterations, mandelbrot[y][x]);
+      }
+
+  for (let j = 0; j <= maxIterations; j++) {
+    let s = Math.max(0, Math.min(255, Math.round(f * Math.log(1.5 * (j - minIterations)))));
+    colorR[j] = s;
+    colorG[j] = s;
+    colorB[j] = 255 - s;
+  }
 
   let s = new PixelStream(width, height, {colorSpace: 'rgb'})
   let data = Buffer.alloc(width * height * 3);
@@ -59,9 +74,9 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
       if (!iterations) {
         data[idx] = data[idx + 1] = data[idx + 2] = 0;
       } else {
-        data[idx] = Math.max(0, Math.min(255, Math.round(f * Math.log(1.5 * (iterations - min))  )));
-        data[idx + 1] = data[idx];
-        data[idx + 2] = 255 - data[idx];
+        data[idx] = colorR[iterations];
+        data[idx + 1] = colorG[iterations];
+        data[idx + 2] = colorB[iterations];
       }
     }
   }

@@ -54,8 +54,10 @@ function generateKeyFrameImages(params) {
 
   return Promise.all(_.map(frames, (frame, i) =>
     new Promise((resolve, reject) => {
+      let startTime = Date.now();
+      console.log(`Constructing Mandelbrot set #${i}...`);
       let set = constructSet(_.extend({}, {width, height}, frame));
-      console.log(`Constructed Mandelbrot set #${i}`);
+      console.log(`Constructed Mandelbrot set #${i} after ${Date.now() - startTime}ms`);
 
       let frameLocation = `./frames/key-${i}.gif`;
       drawMandelbrot(set, frame.depth)
@@ -265,3 +267,5 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
     });
   })
 };
+
+exports.generateKeyFrameImages = generateKeyFrameImages;
