@@ -5,17 +5,20 @@ const stream = require('stream');
 const {execFile} = require('child_process');
 
 const _  = require('underscore');
-const rimraf = require('rimraf');
 const CombinedStream = require('combined-stream');
 const GIFDecoder = require('gif-stream/decoder');
 const GIFEncoder = require('gif-stream/encoder');
 const gifsicle = require('gifsicle');
+const md5 = require('md5');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
+const rimraf = require('rimraf');
 const toArray = require('stream-to-array');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
+
+const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
 // Trajectory of the centre of the viewport: start at origin, go to
 // destination, decrease down a level every time you go a fraction ('base') of
@@ -31,7 +34,6 @@ const getPositionFromLevel = (base) => (maxLevels) => (level) => {
     return 1;
   }
 };
-
 
 const generateFrameData = (params) => (level) => {
   const originX = -0.5;
@@ -252,7 +254,8 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
   ))
   .then((paths) => {
     return new Promise((resolve, reject) => {
-      const outputFile = './output.gif';
+      const fileName = md5(Date.now()).substr(0, 12);
+      const outputFile = `${OUTPUT_DIR}/${fileName}.gif`;
       execFile(gifsicle, [
         '-l',
         '-d6',
