@@ -42,6 +42,7 @@ exports.constructSet = function(params) {
 exports.drawMandelbrot = function(mandelbrot, depth) {
   let width = mandelbrot[0].length;
   let height = mandelbrot.length;
+  let f = 255 / Math.log(depth);
 
   let min = depth;
   for (let y = 0; y < height; y++)
@@ -58,7 +59,7 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
       if (!iterations) {
         data[idx] = data[idx + 1] = data[idx + 2] = 0;
       } else {
-        data[idx] = Math.max(0, Math.min(255, Math.round(255 * Math.log(1.5 * (iterations - min)) / Math.log(depth))));
+        data[idx] = Math.max(0, Math.min(255, Math.round(f * Math.log(1.5 * (iterations - min))  )));
         data[idx + 1] = data[idx];
         data[idx + 2] = 255 - data[idx];
       }
