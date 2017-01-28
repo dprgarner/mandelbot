@@ -8,7 +8,6 @@ const _  = require('underscore');
 const CombinedStream = require('combined-stream');
 const GIFDecoder = require('gif-stream/decoder');
 const GIFEncoder = require('gif-stream/encoder');
-const gifsicle = require('gifsicle');
 const md5 = require('md5');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
@@ -18,6 +17,7 @@ const toArray = require('stream-to-array');
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 
+const gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
 // Trajectory of the centre of the viewport: start at origin, go to
@@ -43,7 +43,7 @@ const generateFrameData = (params) => (level) => {
 
   return {
     level,
-    scale: Math.pow(2, -9 - level),
+    scale: Math.pow(2, -8 - level),
     x: originX + (x - originX) * pos(level),
     y: originY + (y - originY) * pos(level),
     depth: 500 + Math.floor(100 * level),
@@ -67,10 +67,11 @@ function generateKeyFrameImages(params) {
       .pipe(new GIFEncoder)
       .pipe(fs.createWriteStream(frameLocation))
       .on('finish', (err) => {
-        console.log(`Outputted keyFrame to ${frameLocation}`);
         if (err) {
+          console.error(err);
           reject(err);
         } else {
+          console.log(`Outputted keyFrame to ${frameLocation}`);
           resolve(frameLocation);
         }
       });
@@ -141,8 +142,8 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
       let deltaX = (sliceFrameData.x - keyFrameData.x) / keyFrameData.scale;
       let deltaY = (sliceFrameData.y - keyFrameData.y) / keyFrameData.scale;
 
-      let left = Math.floor(deltaX + (1 - r) * width / 2);
-      let top = Math.floor(- deltaY + (1 - r) * height / 2);
+      let left = Math.max(0, Math.floor(deltaX + (1 - r) * width / 2));
+      let top = Math.max(0, Math.floor(- deltaY + (1 - r) * height / 2));
       let cropWidth = Math.floor(r * width);
       let cropHeight = Math.floor(r * height);
 
@@ -150,6 +151,7 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
   }
 
   function clearTempDir() {
+    if (!fs.existsSync('./frames')) fs.mkdirSync('./frames');
     return new Promise((resolve, reject) => {
       rimraf('./frames/*', (err) => {
         if (err) {

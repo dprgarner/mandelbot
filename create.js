@@ -1,8 +1,8 @@
 const getAnimatedStream = require('./animate').getAnimatedStream;
 
-const width = 900 / 2;
-const height = 600 / 2;
-const levels = 10;
+const width = 450;
+const height = 300;
+const levels = 22;
 const x = -0.30240589;
 const y = 0.66221035;
 
@@ -11,9 +11,11 @@ let startTime = Date.now();
 
 getAnimatedStream(params)
 .then((outputFile) => {
-  console.log(`${outputFile} completed after ${Date.now() - startTime}ms`);
+  let seconds = Math.round((Date.now() - startTime) / 1000);
+  console.log(`${outputFile} completed after ${seconds}s`);
 })
 .catch((err) => {
   console.error(err);
   console.error(`Errored after ${Date.now() - startTime}ms`);
+  process.exit(1);
 });
