@@ -16,6 +16,7 @@ const toArray = require('stream-to-array');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
+const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 const gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
@@ -51,32 +52,21 @@ const generateFrameData = (params) => (level) => {
 };
 
 function generateKeyFrameImages(params) {
-  const {x, y, levels, width, height} = params
+  const {x, y, levels, width, height} = params;
   const frames = _.map(_.range(levels), generateFrameData({x, y, levels}));
 
-  return Promise.all(_.map(frames, (frame, i) =>
-    new Promise((resolve, reject) => {
-      let startTime = Date.now();
-      console.log(`Constructing Mandelbrot set #${i}...`);
-      let set = constructSet(_.extend({}, {width, height}, frame));
-      console.log(`Constructed Mandelbrot set #${i} after ${Date.now() - startTime}ms`);
+  return Promise.all(_.map(frames, (frame, i) => {
+    let startTime = Date.now();
+    console.log(`Constructing Mandelbrot set #${i}...`);
+    let set = constructSet(_.extend({}, {width, height}, frame));
+    console.log(`Constructed Mandelbrot set #${i} after ${Date.now() - startTime}ms`);
 
-      let frameLocation = `./frames/key-${i}.gif`;
-      drawMandelbrot(set, frame.depth)
-      .pipe(new neuquant.Stream(width, height, {colorSpace: 'rgb'}))
-      .pipe(new GIFEncoder)
-      .pipe(fs.createWriteStream(frameLocation))
-      .on('finish', (err) => {
-        if (err) {
-          console.error(err);
-          reject(err);
-        } else {
-          console.log(`Outputted keyFrame to ${frameLocation}`);
-          resolve(frameLocation);
-        }
-      });
-    })
-  ));
+    return renderSetToFile(
+      set,
+      _.extend(params, {depth: frame.depth}),
+      `./frames/key-${i}.gif`
+    );
+  }));
 }
 
 function mergeGifs({ratio, path1, path2, path3, width, height}) {
@@ -272,5 +262,3 @@ exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gif
     });
   })
 };
-
-exports.generateKeyFrameImages = generateKeyFrameImages;

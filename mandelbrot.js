@@ -1,5 +1,8 @@
 'use strict';
 
+const fs = require('fs');
+const GIFEncoder = require('gif-stream/encoder');
+const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
 
 function convergesWithin(depth, cRe, cIm) {
@@ -83,4 +86,21 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
   s.push(data);
   s.end();
   return s;
+};
+
+exports.renderSetToFile = function(set, params, frameLocation) {
+  return new Promise((resolve, reject) => {
+    exports.drawMandelbrot(set, params.depth)
+    .pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
+    .pipe(new GIFEncoder)
+    .pipe(fs.createWriteStream(frameLocation))
+    .on('finish', (err) => {
+      if (err) {
+        console.error(err);
+        reject(err);
+      } else {
+        resolve(frameLocation);
+      }
+    });
+  });
 };
