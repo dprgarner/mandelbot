@@ -39,6 +39,18 @@ exports.constructSet = function(params) {
       set[y][x] = convergesWithin(depth, startX + scale * x, startY - scale * y);
     }
   }
+
+  // Clear orphans...
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (set[y][x]) continue;
+      if (y < height - 1 && !set[y+1][x]) continue;
+      if (y > 0 && !set[y-1][x]) continue;
+      if (!set[y][x+1] || !set[y][x-1]) continue;
+      set[y][x] = depth;
+    }
+  }
+
   return set;
 };
 
