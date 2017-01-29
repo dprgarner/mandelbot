@@ -1,2 +1,4 @@
+*.gif
+auth.js
 frames
 node_modules

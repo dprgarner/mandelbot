@@ -19,6 +19,7 @@
     "png-stream": "^1.0.5",
     "rimraf": "^2.5.4",
     "stream-to-array": "^2.3.0",
+    "twitter": "^1.7.0",
     "underscore": "^1.8.3"
   }
 }
