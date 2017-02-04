@@ -21,14 +21,6 @@ function collateDepths(set, {width, height, depth}) {
     }
   }
 
-  // Check for 'orphans' - Mandelbrot points next to no other points
-  for (let {x, y} of depthsCollation[null]) {
-    if (y < height - 1 && !set[y+1][x]) continue;
-    if (y > 1 && !set[y-1][x]) continue;
-    if (!set[y][x+1] || !set[y][x-1]) continue;
-    depthsCollation.orphans.push({x, y}) 
-  }
-
   for (let i = 0; i < depth; i++) {
     if (depthsCollation[i]) depthsCollation.maxDepth = i;
   }
@@ -76,8 +68,18 @@ function getInterestingMandelbrotPoint(
   return toComplexCoords({pixelX, pixelY}, {x, y, width, height, scale});
 }
 
+function render(set, params, fileName) {
+  renderSetToFile(set, params, fileName)
+  .then((frameLocation) => {
+    console.log(`Outputted keyFrame to ${frameLocation}`);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
 
-function iterativelyGeneratePixels({width, height}) {
+function findInterestingPoint({width, height}) {
   let depthAdjust = 500;
 
   let x = -0.5;
@@ -105,37 +107,18 @@ function iterativelyGeneratePixels({width, height}) {
     ${i}: Level: ${level}, Depth: ${depth}`);
 
     let startTime = Date.now();
-    // console.log(`Constructing Mandelbrot set...`);
     let set = constructSet(params);
-    // console.log(`Constructed Mandelbrot set after ${Date.now() - startTime}ms`);
 
-    renderSetToFile(set, params, `./frames/${i}_${level}_${depth}_${x}_${y}.gif`)
-    .then((frameLocation) => {
-      console.log(`Outputted keyFrame to ${frameLocation}`);
-    })
-    .catch((err) => {
-      console.error(err);
-      process.exit(1);
-    });
+    render(set, params, `./frames/${i}_${level}_${depth}_${x}_${y}.gif`);
 
     let depthsCollation = collateDepths(set, {width, height, depth});
     let threshold = Math.floor(
       (0.1 * Math.random()) * (width * height - depthsCollation[null].length)
     );
-
-    let orphansPercent = 100 * depthsCollation.orphans.length / (width * height);
-    console.log(`Orphans at level ${level}: ${depthsCollation.orphans.length} (${orphansPercent}%)`);
-    if (orphansPercent > 0.75) {
-      if (redraws < 3) {
-        console.log('Too many orphans - adjusting depth');
-        redraws++;
-        depthAdjust += 100;
-      } else {
-        console.log('Too many orphans - zooming out');
-        level -= 4;
-        redraws = 0;
-      }
-      continue;
+    if (depthsCollation.orphans.length) {
+      console.log(depthsCollation.orphans);
+      console.log(`./frames/${i}_${level}_${depth}_${x}_${y}.gif`);
+      break;
     }
 
     if (depthsCollation.maxDepth < depth / 10 && redraws < 3) {
@@ -180,23 +163,16 @@ rimrafSync('./frames/*');
 const width = 450;
 const height = 300;
 
-let target = iterativelyGeneratePixels({width: width / 3, height: height / 3});
+let target = findInterestingPoint({width: width / 3, height: height / 3});
 
-let params = _.extend({}, target, {
-  scale: Math.pow(2, -8 - target.level),
-  width,
-  height,
-});
-
-let startTime = Date.now();
-let set = constructSet(params);
-
-const fileName = md5(Date.now()).substr(0, 12);
-renderSetToFile(set, params, `./${fileName}.gif`)
-.then((frameLocation) => {
-  console.log(`Outputted final frame to ${frameLocation}`);
-})
-.catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (target) {
+  let params = _.extend({}, target, {
+    scale: Math.pow(2, -8 - target.level),
+    width,
+    height,
+  });
+  let set = constructSet(params);
+  render(set, params, `./${md5(Date.now()).substr(0, 12)}.gif`);
+} else {
+  console.log('No target...')
+}
