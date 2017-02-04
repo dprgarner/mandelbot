@@ -1,13 +1,12 @@
 const getAnimatedStream = require('./animate').getAnimatedStream;
+const find = require('./find');
 
 const width = 450;
 const height = 300;
-const levels = 22;
-const x = -0.30240589;
-const y = 0.66221035;
 
-let params = {width, height, x, y, levels};
 let startTime = Date.now();
+let params = find({width, height});
+console.log(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 
 getAnimatedStream(params)
 .then((outputFile) => {

@@ -1,13 +1,6 @@
-const fs = require('fs');
-
 const _ = require('underscore');
-const GIFEncoder = require('gif-stream/encoder');
-const md5 = require('md5');
-const neuquant = require('neuquant');
-const rimrafSync = require('rimraf').sync;
 
 const constructSet = require('./mandelbrot').constructSet;
-const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 function collateDepths(set, {width, height, depth}) {
   let depthsCollation = {[null]: []};
@@ -193,16 +186,15 @@ function getMandelbrotSides(set) {
   .value();
 }
 
-
 // For logging.
-let attempt=-1;
+let attempt = -1;
 function scry({width, height}) {
   let depthAdjust = 500;
 
   let x = -0.5;
   let y = 0;
 
-  const targetLevel = 16;
+  const targetLevel = 16 + Math.round(Math.random() * 4);
   let level;
   let depth;
   let scale;
@@ -217,7 +209,6 @@ function scry({width, height}) {
     let set = constructSet(params);
     // Logging
     console.log(`    ${attempt}: Level: ${level}, Depth: ${depth}`);
-    render(set, params, `./frames/${attempt}_${level}_${depth}_${x}_${y}.gif`);
 
     let depthsCollation = collateDepths(set, {width, height, depth});
     let threshold = Math.floor(
@@ -248,10 +239,8 @@ function scry({width, height}) {
     let set = constructSet(params);
     // Logging
     console.log(`      ${attempt}: Level: ${level}, Depth: ${depth}`);
-    render(set, params, `./frames/${attempt}_${level}_${depth}_${x}_${y}.gif`);
 
     let profile = getPercentProfile(set);
-    // console.log(profile);
     let maxProportion = getMaxProportion(profile);
 
     // Stop if there are no likely candidates for a Mandelbrot copy
@@ -278,7 +267,6 @@ function scry({width, height}) {
 
     // Find which sides of the image have Mandelbrot sets
     let sides = getMandelbrotSides(set);
-    console.log(sides);
     if (sides.length > 2) {
       console.log('Totally surrounded');
       level--;
@@ -317,8 +305,8 @@ function scry({width, height}) {
 
     // Zoom in some more if there's not enough Mandelbrot points.
     let proportion = totalProportion(profile);
-    console.log('proportion: ', proportion);
     if (proportion < 0.05) {
+      console.log('Zooming in');
       level++;
       tries++; // An extra try, to get the right zoom.
     }
@@ -327,20 +315,20 @@ function scry({width, height}) {
   if (potentials.length) return potentials[potentials.length - 1];
 }
 
-rimrafSync('./frames/*');
-const width = 450;
-const height = 300;
+module.exports = function ({width, height}) {
+  let target;
 
-let target;
+  while (!target) {
+    target = scry({width: width / 3, height: height / 3});
+  }
+  console.log(`Found a mandelbrot copy after ${attempt} attempts`);
 
-while (!target) {
-  target = scry({width: width / 3, height: height / 3});
+  let params = _.extend({}, target, {
+    scale: Math.pow(2, -8 - target.level),
+    width,
+    height,
+    levels: target.level,
+  });
+
+  return params;
 }
-
-let params = _.extend({}, target, {
-  scale: Math.pow(2, -8 - target.level),
-  width,
-  height,
-});
-let set = constructSet(params);
-render(set, params, `./_${md5(Date.now()).substr(0, 12)}.gif`);
