@@ -17,6 +17,8 @@
     "nodemon": "^1.10.2",
     "pixel-stream": "^1.0.3",
     "png-stream": "^1.0.5",
+    "request": "^2.79.0",
+    "request-promise": "^4.1.1",
     "rimraf": "^2.5.4",
     "stream-to-array": "^2.3.0",
     "twitter": "^1.7.0",

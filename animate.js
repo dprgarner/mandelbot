@@ -116,7 +116,7 @@ function sinusoidalInOut(k) {
   return 0.5 * (1 - Math.cos(Math.PI * k));
 }
 
-exports.getAnimatedStream = function({x, y, levels, width: gifWidth, height: gifHeight}) {
+exports.createAnimation = function({x, y, levels, width: gifWidth, height: gifHeight}) {
   let startTime = Date.now();
 
   const gifToRenderRatio = 4;
