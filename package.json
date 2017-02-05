@@ -22,7 +22,7 @@
     "request-promise": "^4.1.1",
     "rimraf": "^2.5.4",
     "stream-to-array": "^2.3.0",
-    "twitter": "^1.7.0",
+    "twit": "^2.2.5",
     "underscore": "^1.8.3"
   }
 }

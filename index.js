@@ -3,7 +3,8 @@ const _ = require('underscore');
 const createGif = require('./animate').createGif;
 const createMp4 = require('./animate').createMp4;
 const find = require('./find');
-// const upload = require('./upload');
+const uploadGfycat = require('./uploadGfycat');
+const {uploadMedia, updateStatus} = require('./twitter');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
@@ -14,9 +15,17 @@ function waitUntilDueTime() {
   });
 }
 
-function tweetImage(params, url) {
-  console.log('Tweet: ', url);
-  console.log('params:', params)
+function tweetGifWithImages({levels}, url) {
+  let stillImages = _.range(4).map(i => (
+    `./frames/key-${Math.round((levels - 1) * i / 3)}.gif`
+  ));
+
+  return Promise.all(_.map(stillImages, uploadMedia))
+  .then((mediaIds) => {
+    let params = {status: `GIF: ${url}`, media_ids: mediaIds}
+    return updateStatus(params)
+  })
+  .then(({id_str}) => `https://twitter.com/BenoitMandelbot/status/${id_str}`);
 }
 
 const width = 504;
@@ -32,12 +41,15 @@ createGif(params)
   let seconds = Math.round((Date.now() - startTime) / 1000);
   console.log(`${outputFile} completed after ${seconds}s`);
 
-  return Promise.resolve('asdf'); // upload(outputFile);
+  return uploadGfycat(outputFile);
 })
 .then((url) => {
-  console.log(`Gif uploaded to ${url}`);
+  console.log(`Successfully uploaded to ${url}`)
   console.log('Waiting until next hour to tweet');
-  return waitUntilDueTime().then(() => tweetImage(params, url));
+  return waitUntilDueTime().then(() => tweetGifWithImages(params, url));
+})
+.then((tweetUrl) => {
+  console.log(`Tweet: ${tweetUrl}`);
 })
 .catch((err) => {
   console.error(err);

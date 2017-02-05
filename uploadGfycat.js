@@ -5,9 +5,11 @@ const rp = require('request-promise');
 const gfycatAuth = require('./auth').gfycatAuth;
 
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
-// http://giant.gfycat.com/TightTediousBanteng.gif
 
-function uploadGif(filePath, title) {
+// http://giant.gfycat.com/TightTediousBanteng.gif
+// https://giant.gfycat.com/UnlawfulSeveralFluke.gif
+
+module.exports = function(filePath, title) {
   return rp({
     uri: 'https://api.gfycat.com/v1/oauth/token',
     json: true,
@@ -37,13 +39,8 @@ function uploadGif(filePath, title) {
           file: fs.createReadStream(filePath),
         },
       })
-      .then((body) => gfyname)
+      .then(() => `https://giant.gfycat.com/${gfyname}.gif`)
       .catch((err) => reject(err))
-    })
-    .then(gfyname => {
-      const url = `https://giant.gfycat.com/${gfyname}.gif`;
-      console.log(`Successfully uploaded to ${url}`)
-      return url;
     });
   });
 }
