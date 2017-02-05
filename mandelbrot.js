@@ -1,6 +1,8 @@
 'use strict';
 
 const fs = require('fs');
+
+const _ = require('underscore');
 const GIFEncoder = require('gif-stream/encoder');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
@@ -54,15 +56,60 @@ exports.constructSet = function(params) {
   return set;
 };
 
-exports.drawMandelbrot = function(mandelbrot, depth) {
+exports.randomColours = function() {
+  let sparse = _.map([
+    Math.floor(Math.random() * 32),
+    Math.floor(Math.random() * 16),
+    Math.floor(Math.random() * 64),
+  ], i => (
+    (Math.random() < 0.7) ? i : 255 - i
+  ));
+  let permute = Math.floor(Math.random() * 3)
+  if (permute > 0) sparse.splice(0, 0, sparse.pop());
+  if (permute > 1) sparse.splice(0, 0, sparse.pop());
+
+  let dense = _.map(sparse, (i) => (
+    Math.max(0, Math.min(255, 255 - i + Math.floor((Math.random() * 16) - 2) * 16))
+  ));
+  let mandelbrot = [0, 0, 0];
+
+  if (Math.random() < 0.5) {
+    sparse = _.map(sparse, i => 255 - i);
+    dense = _.map(dense, i => 255 - i);
+
+    if (Math.random() < 0.5) {
+      sparse = _.map(sparse, i => Math.random() < 0.7 ? Math.round(i / 2) : i);
+      mandelbrot = _.map([255, 255, 255], i => (
+        Math.random() < 0.7 ? i : 255 - Math.floor(Math.random() * 64)
+      ));
+    }
+  }
+
+  const psychedelic = Math.random() < 0.1;
+
+  return {
+    sparse,
+    dense,
+    mandelbrot,
+    psychedelic,
+  };
+}
+
+exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let startTime = Date.now();
   let width = mandelbrot[0].length;
   let height = mandelbrot.length;
-  let f = 255 / Math.log(depth);
+  let f = 1 / Math.log(depth);
 
   let colorR = {};
   let colorG = {};
   let colorB = {};
+
+  if (!colours) throw new Error('no colours');
+
+  const [sparseR, sparseG, sparseB] = colours && colours.sparse || [0, 0, 255];
+  const [denseR, denseG, denseB] = colours && colours.dense || [255, 255, 0];
+  const [mandelbrotR, mandelbrotG, mandelbrotB] = colours && colours.mandelbrot || [0, 0, 0];
 
   let minIterations = depth;
   let maxIterations = 0;
@@ -74,10 +121,16 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
       }
 
   for (let j = 0; j <= maxIterations; j++) {
-    let s = Math.max(0, Math.min(255, Math.round(f * Math.log(1.5 * (j - minIterations)))));
-    colorR[j] = s;
-    colorG[j] = s;
-    colorB[j] = 255 - s;
+    let s;
+    if (colours && colours.psychedelic) {
+      s = Math.pow(f * j, 0.25);
+    } else {
+      s = 256 * Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+    }
+
+    colorR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
+    colorG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
+    colorB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
   }
 
   let s = new PixelStream(width, height, {colorSpace: 'rgb'})
@@ -87,7 +140,9 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
       let iterations = mandelbrot[y][x];
       let idx = (y * width + x) * 3;
       if (!iterations) {
-        data[idx] = data[idx + 1] = data[idx + 2] = 0;
+        data[idx] = mandelbrotR;
+        data[idx + 1] = mandelbrotG;
+        data[idx + 2] = mandelbrotB;
       } else {
         data[idx] = colorR[iterations];
         data[idx + 1] = colorG[iterations];
@@ -102,7 +157,7 @@ exports.drawMandelbrot = function(mandelbrot, depth) {
 
 exports.renderSetToFile = function(set, params, frameLocation) {
   return new Promise((resolve, reject) => {
-    exports.drawMandelbrot(set, params.depth)
+    exports.drawMandelbrot(set, params.depth, params.colours)
     .pipe(new neuquant.Stream(params.width, params.height, {colorSpace: 'rgb'}))
     .pipe(new GIFEncoder)
     .pipe(fs.createWriteStream(frameLocation))

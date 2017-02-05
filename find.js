@@ -58,17 +58,6 @@ function getRandomMandelbrotPoint(
   return toComplexCoords({pixelX, pixelY}, {x, y, width, height, scale});
 }
 
-function render(set, params, fileName) {
-  renderSetToFile(set, params, fileName)
-  .then((frameLocation) => {
-    console.log(`Outputted keyFrame to ${frameLocation}`);
-  })
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  });
-}
-
 // Split the set into 10x10-pixel segments, count the proportion of points
 // which are in the Mandelbrot set, and return these proportions as a matrix.
 function getPercentProfile(set) {
@@ -242,6 +231,9 @@ function scry({width, height}) {
 
     let profile = getPercentProfile(set);
     let maxProportion = getMaxProportion(profile);
+
+    // Stop if it's gone too deep
+    if (level > targetLevel + 10) return;
 
     // Stop if there are no likely candidates for a Mandelbrot copy
     if (getMaxProportion(profile) === 0) {

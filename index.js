@@ -8,9 +8,9 @@ const {uploadMedia, updateStatus} = require('./twitter');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
-    let d = new Date();
-    // Wait until the next hour.
-    let msUntilHour = 1000 * (60 * (60 - d.getMinutes()) + (60 - d.getSeconds()));
+    // Wait until the next three-hour point.
+    let threeHours = 1000 * 60 * 60 * 3;
+    let msUntilHour = threeHours - (Date.now() % threeHours);
     setTimeout(resolve, 2000);
   });
 }
@@ -33,7 +33,10 @@ let approxHeight = Math.floor(width * 2 / 3);
 const height = approxHeight + approxHeight % 2; // Height must be divisible by 2
 
 let startTime = Date.now();
-let params = _.extend({}, find({width: 150, height: 100}), {width, height});
+let params = _.extend({}, find({width: 150, height: 100}), {
+  width,
+  height,
+});
 console.log(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 
 createGif(params)
@@ -50,9 +53,17 @@ createGif(params)
 })
 .then((tweetUrl) => {
   console.log(`Tweet: ${tweetUrl}`);
+  process.exit(0);
 })
 .catch((err) => {
   console.error(err);
   console.error(`Errored after ${Date.now() - startTime}ms`);
   process.exit(1);
 });
+
+// createMp4(params)
+// .catch((err) => {
+//   console.error(err);
+//   console.error(`Errored after ${Date.now() - startTime}ms`);
+//   process.exit(1);
+// });

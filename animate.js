@@ -16,8 +16,10 @@ const toArray = require('stream-to-array');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
+const randomColours = require('./mandelbrot').randomColours;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
+const ffmpeg = process.env.container === 'docker' ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
 const gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
@@ -129,7 +131,7 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
   const width = gifWidth * gifToRenderRatio;
   const height = gifHeight * gifToRenderRatio;
 
-  const params = {x, y, levels, width, height};
+  const params = {x, y, levels, width, height, colours: randomColours()};
 
   function takeSliceFrom(keyFrameData, sliceFrameData) {
       // Ratio of slice frame dimensions to keyFrame dimensions
@@ -288,7 +290,7 @@ exports.createMp4 = function(params) {
     ])).join('\n'), (err) => {
       if (err) return reject(err);
       execFile(
-        'node_modules\\.bin\\ffmpeg.cmd',
+        ffmpeg,
         [
           '-safe', '0',
           '-y',
