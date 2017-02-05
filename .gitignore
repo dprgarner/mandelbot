@@ -1,4 +1,6 @@
 *.gif
+*.mp4
 auth.js
+concat.txt
 frames
 node_modules

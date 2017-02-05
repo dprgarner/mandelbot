@@ -116,7 +116,13 @@ function sinusoidalInOut(k) {
   return 0.5 * (1 - Math.cos(Math.PI * k));
 }
 
-exports.createAnimation = function({x, y, levels, width: gifWidth, height: gifHeight}) {
+function padWithZeroes(i) {
+  if (i < 10) return '00' + i;
+  if (i < 100) return '0' + i;
+  return '' + i;
+}
+
+exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeight}) {
   let startTime = Date.now();
 
   const gifToRenderRatio = 4;
@@ -182,7 +188,7 @@ exports.createAnimation = function({x, y, levels, width: gifWidth, height: gifHe
       ) : null;
 
       return {
-        frameNumber: i,
+        frameNumber: padWithZeroes(i),
         currentKeyFrame,
         previousKeyFrame,
       };
@@ -243,7 +249,12 @@ exports.createAnimation = function({x, y, levels, width: gifWidth, height: gifHe
         });
       })
     )
-  ))
+  ));
+};
+
+exports.createGif = function(params) {
+  let startTime = Date.now();
+  return exports.createFrames(params)
   .then((paths) => {
     return new Promise((resolve, reject) => {
       const fileName = md5(Date.now()).substr(0, 12);
@@ -261,4 +272,39 @@ exports.createAnimation = function({x, y, levels, width: gifWidth, height: gifHe
       });
     });
   })
+};
+
+exports.createMp4 = function(params) {
+  let startTime = Date.now();
+  return exports.createFrames(params)
+  .then((paths) => new Promise((resolve, reject) => {
+    const concatFile = './concat.txt';
+    const fileName = md5(Date.now()).substr(0, 12);
+    const outputFile = `${OUTPUT_DIR}/${fileName}.mp4`;
+
+    fs.writeFile(concatFile, _.flatten(_.map(paths, (path) => [
+      `file '${path}'`,
+      'duration 0.06',
+    ])).join('\n'), (err) => {
+      if (err) return reject(err);
+      execFile(
+        'node_modules\\.bin\\ffmpeg.cmd',
+        [
+          '-safe', '0',
+          '-y',
+          '-f', 'concat',
+          '-i', concatFile,
+          '-vf', 'format=yuv420p',
+          '-preset', 'veryslow',
+          '-crf', '0',
+          outputFile,
+        ],
+        (err) => {
+          if (err) return reject(err);
+          console.log(`Collated mp4 after ${Date.now() - startTime}ms`);
+          resolve(outputFile)
+        }
+      );
+    });
+  }));
 };

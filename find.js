@@ -319,14 +319,12 @@ module.exports = function ({width, height}) {
   let target;
 
   while (!target) {
-    target = scry({width: width / 3, height: height / 3});
+    target = scry({width, height});
   }
   console.log(`Found a mandelbrot copy after ${attempt} attempts`);
 
   let params = _.extend({}, target, {
     scale: Math.pow(2, -8 - target.level),
-    width,
-    height,
     levels: target.level,
   });
 

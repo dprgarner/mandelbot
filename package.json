@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "combined-stream": "^1.0.5",
+    "ffmpeg-binaries": "^3.2.2-3",
     "gif-stream": "^1.1.0",
     "image-min": "^0.3.2",
     "md5": "^2.2.1",
