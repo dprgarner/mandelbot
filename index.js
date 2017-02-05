@@ -8,10 +8,10 @@ const {uploadMedia, updateStatus} = require('./twitter');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
-    // Wait until the next three-hour point.
-    let threeHours = 1000 * 60 * 60 * 3;
-    let msUntilHour = threeHours - (Date.now() % threeHours);
-    setTimeout(resolve, 2000);
+    // Wait until the next two-hour point.
+    let twoHours = 1000 * 60 * 60 * 2;
+    let msUntilTime = twoHours - (Date.now() % twoHours);
+    setTimeout(resolve, msUntilTime);
   });
 }
 
@@ -43,7 +43,6 @@ createGif(params)
 .then((outputFile) => {
   let seconds = Math.round((Date.now() - startTime) / 1000);
   console.log(`${outputFile} completed after ${seconds}s`);
-
   return uploadGfycat(outputFile);
 })
 .then((url) => {
