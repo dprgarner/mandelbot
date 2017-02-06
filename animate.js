@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const stream = require('stream');
-const {execFile} = require('child_process');
+const {execFileSync} = require('child_process');
 
 const _  = require('underscore');
 const CombinedStream = require('combined-stream');
@@ -22,6 +22,17 @@ const renderSetToFile = require('./mandelbrot').renderSetToFile;
 const ffmpeg = process.env.container === 'docker' ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
 const gifsicle = exports.gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
+
+// Input: list of promise *generators*.
+// Output: promise which resolves promises one-at-a-time in sequence, which
+// eventually resolves to the list of all promise results (like Promise.all),
+// or returns the first Promise reject.
+const serial = funcs => funcs.reduce(
+  (promise, func) => promise.then(result =>
+    func().then(Array.prototype.concat.bind(result))
+  ),
+  Promise.resolve([])
+);
 
 // Trajectory of the centre of the viewport: start at origin, go to
 // destination, decrease down a level every time you go a fraction ('base') of
@@ -57,7 +68,7 @@ function generateKeyFrameImages(params) {
   const {x, y, levels, width, height} = params;
   const frames = _.map(_.range(levels), generateFrameData({x, y, levels}));
 
-  return Promise.all(_.map(frames, (frame, i) => {
+  return serial(_.map(frames, (frame, i) => () => {
     let startTime = Date.now();
     console.log(`Constructing Mandelbrot set #${i}...`);
     let set = constructSet(_.extend({}, {width, height}, frame));
@@ -148,21 +159,11 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
       return {left, top, cropWidth, cropHeight};
   }
 
-  function clearTempDir() {
-    if (!fs.existsSync('./frames')) fs.mkdirSync('./frames');
-    return new Promise((resolve, reject) => {
-      rimraf('./frames/*', (err) => {
-        if (err) {
-          console.log('could not remove')
-          return reject(err);
-        }
-        resolve(true);
-      });
-    });
-  }
+  if (!fs.existsSync('./frames')) fs.mkdirSync('./frames');
+  rimraf.sync('./frames/*');
 
-  return clearTempDir()
-  .then(() => generateKeyFrameImages(params))
+  let ticker = 0;
+  return generateKeyFrameImages(params)
   .then((keyFrames) => {
     const getFrameData = generateFrameData(params);
 
@@ -196,56 +197,50 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
       };
     });
   })
-  .then((framesData) => Promise.all(
-    _.map(framesData, (frameData) =>
-      new Promise((resolve, reject) => {
-        let {frameNumber, currentKeyFrame: {path, left, top, cropWidth, cropHeight}} = frameData;
-        let outputFile = `./frames/${frameNumber}.gif`;
-        execFile(
-          gifsicle,
-          [
-            '--crop', `${left},${top}+${cropWidth}x${cropHeight}`,
-            '--resize-method', 'box',
-            '--resize', `${gifWidth}x${gifHeight}`,
-            path,
-            '-o', `${outputFile}`,
-          ],
-        );
-      })
-      .then((firstOutputFile) => new Promise((resolve, reject) => {
-        if (!frameData.previousKeyFrame) return resolve({firstOutputFile});
+  .then((framesData) => serial(
+    _.map(framesData, (frameData) => () => {
+      let {frameNumber, currentKeyFrame: {path, left, top, cropWidth, cropHeight}} = frameData;
+      console.log(`Frame ${frameNumber} of ${framesData.length}...`)
+      let outputFile1 = `./frames/${frameNumber}.gif`;
+      execFileSync(
+        gifsicle,
+        [
+          '--crop', `${left},${top}+${cropWidth}x${cropHeight}`,
+          '--resize-method', 'box',
+          '--resize', `${gifWidth}x${gifHeight}`,
+          path,
+          '-o', `${outputFile1}`,
+        ]
+      );
 
-        let {frameNumber, previousKeyFrame: {path, left, top, cropWidth, cropHeight}} = frameData;
-        let outputFile = `./frames/${frameNumber}_a.gif`;
+      if (!frameData.previousKeyFrame) return Promise.resolve(outputFile1);
 
-        execFile(
-          gifsicle,
-          [
-            '--crop', `${left},${top}+${cropWidth}x${cropHeight}`,
-            '--resize-method', 'catrom',
-            '--resize', `${gifWidth}x${gifHeight}`,
-            path,
-            '-o', `${outputFile}`,
-          ],
-          (err) => {
-            if (err) return reject(err);
-            const fade = 1 - gifToRenderRatio * (cropWidth / width - 1 / gifToRenderRatio);
-            resolve({firstOutputFile, secondOutputFile: outputFile, fade});
-          }
-        );
-      }))
-      .then(({firstOutputFile, secondOutputFile, fade}) => {
-        if (!secondOutputFile) return firstOutputFile;
-        return mergeGifs({
-          width: gifWidth,
-          height: gifHeight,
-          ratio: fade,
-          path1: firstOutputFile,
-          path2: secondOutputFile,
-          path3: firstOutputFile,
-        });
-      })
-    )
+      let prev = frameData.previousKeyFrame;
+      let outputFile2 = `./frames/${frameNumber}_a.gif`;
+
+      execFileSync(
+        gifsicle,
+        [
+          '--crop', `${prev.left},${prev.top}+${prev.cropWidth}x${prev.cropHeight}`,
+          '--resize-method', 'catrom',
+          '--resize', `${gifWidth}x${gifHeight}`,
+          prev.path,
+          '-o', `${outputFile2}`,
+        ]
+      );
+      const fade = 1 - gifToRenderRatio * (cropWidth / width - 1 / gifToRenderRatio);
+
+      let outputFile3 = `./frames/${frameNumber}_b.gif`;
+
+      return mergeGifs({
+        width: gifWidth,
+        height: gifHeight,
+        ratio: fade,
+        path1: outputFile1,
+        path2: outputFile2,
+        path3: outputFile3,
+      });
+    })
   ));
 };
 
@@ -253,22 +248,21 @@ exports.createGif = function(params) {
   let startTime = Date.now();
   return exports.createFrames(params)
   .then((paths) => {
-    return new Promise((resolve, reject) => {
-      const fileName = md5(Date.now()).substr(0, 12);
-      const outputFile = `${OUTPUT_DIR}/${fileName}.gif`;
-      execFile(gifsicle, [
+    const fileName = md5(Date.now()).substr(0, 12);
+    const outputFile = `${OUTPUT_DIR}/${fileName}.gif`;
+    execFileSync(
+      gifsicle,
+      [
         '-l',
         '-d6',
       ].concat(paths).concat([
         '-O',
         '-o', outputFile
-      ]), (err) => {
-        if (err) return reject(err);
-        console.log(`Collated gif after ${Date.now() - startTime}ms`);
-        resolve(outputFile);
-      });
-    });
-  })
+      ])
+    );
+    console.log(`Collated gif after ${Date.now() - startTime}ms`);
+    return outputFile;
+  });
 };
 
 exports.createMp4 = function(params) {
@@ -279,29 +273,26 @@ exports.createMp4 = function(params) {
     const fileName = md5(Date.now()).substr(0, 12);
     const outputFile = `${OUTPUT_DIR}/${fileName}.mp4`;
 
-    fs.writeFile(concatFile, _.flatten(_.map(paths, (path) => [
+    fs.writeFileSync(concatFile, _.flatten(_.map(paths, (path) => [
       `file '${path}'`,
       'duration 0.06',
-    ])).join('\n'), (err) => {
-      if (err) return reject(err);
-      execFile(
-        ffmpeg,
-        [
-          '-safe', '0',
-          '-y',
-          '-f', 'concat',
-          '-i', concatFile,
-          '-vf', 'format=yuv420p',
-          '-preset', 'veryslow',
-          '-crf', '0',
-          outputFile,
-        ],
-        (err) => {
-          if (err) return reject(err);
-          console.log(`Collated mp4 after ${Date.now() - startTime}ms`);
-          resolve(outputFile)
-        }
-      );
-    });
+    ])).join('\n'));
+
+    execFileSync(
+      ffmpeg,
+      [
+        '-safe', '0',
+        '-y',
+        '-f', 'concat',
+        '-i', concatFile,
+        '-vf', 'format=yuv420p',
+        '-preset', 'veryslow',
+        '-crf', '0',
+        outputFile,
+      ]
+    );
+
+    console.log(`Collated mp4 after ${Date.now() - startTime}ms`);
+    return outputFile;
   }));
 };

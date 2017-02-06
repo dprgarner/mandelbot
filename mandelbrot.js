@@ -166,6 +166,7 @@ exports.renderSetToFile = function(set, params, frameLocation) {
         console.error(err);
         reject(err);
       } else {
+        console.log(`Rendered set to ${frameLocation}`);
         resolve(frameLocation);
       }
     });

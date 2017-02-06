@@ -70,11 +70,11 @@ createGif(params)
 //   console.log(`Tweet: ${tweetUrl}`);
 //   process.exit(0);
 // })
-// .catch((err) => {
-//   console.error(err);
-//   console.error(`Errored after ${Date.now() - startTime}ms`);
-//   process.exit(1);
-// });
+.catch((err) => {
+  console.error(err);
+  console.error(`Errored after ${Date.now() - startTime}ms`);
+  process.exit(1);
+});
 
 // createMp4(params)
 // .catch((err) => {
