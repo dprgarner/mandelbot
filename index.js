@@ -59,17 +59,17 @@ createGif(params)
 .then((outputFile) => {
   let seconds = Math.round((Date.now() - startTime) / 1000);
   console.log(`${outputFile} completed after ${seconds}s`);
-  return uploadGfycat(outputFile);
+  // return uploadGfycat(outputFile);
 })
-.then((url) => {
-  console.log(`Successfully uploaded to ${url}`)
-  console.log('Waiting until next hour to tweet');
-  return waitUntilDueTime().then(() => tweetGifWithImages(params, url));
-})
-.then((tweetUrl) => {
-  console.log(`Tweet: ${tweetUrl}`);
-  process.exit(0);
-})
+// .then((url) => {
+//   console.log(`Successfully uploaded to ${url}`)
+//   console.log('Waiting until next hour to tweet');
+//   return waitUntilDueTime().then(() => tweetGifWithImages(params, url));
+// })
+// .then((tweetUrl) => {
+//   console.log(`Tweet: ${tweetUrl}`);
+//   process.exit(0);
+// })
 .catch((err) => {
   console.error(err);
   console.error(`Errored after ${Date.now() - startTime}ms`);

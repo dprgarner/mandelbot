@@ -85,7 +85,7 @@ exports.randomColours = function() {
     }
   }
 
-  const psychedelic = Math.random() < 0.1;
+  const psychedelic = Math.random() < 0.2;
 
   return {
     sparse,
@@ -105,8 +105,6 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let colorG = {};
   let colorB = {};
 
-  if (!colours) throw new Error('no colours');
-
   const [sparseR, sparseG, sparseB] = colours && colours.sparse || [0, 0, 255];
   const [denseR, denseG, denseB] = colours && colours.dense || [255, 255, 0];
   const [mandelbrotR, mandelbrotG, mandelbrotB] = colours && colours.mandelbrot || [0, 0, 0];
@@ -123,9 +121,9 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   for (let j = 0; j <= maxIterations; j++) {
     let s;
     if (colours && colours.psychedelic) {
-      s = Math.pow(f * j, 0.25);
+      s = Math.round(64 * Math.log(j));
     } else {
-      s = 256 * Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+      s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
     }
 
     colorR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;

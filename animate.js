@@ -141,8 +141,9 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
   const gifToRenderRatio = 4;
   const width = gifWidth * gifToRenderRatio;
   const height = gifHeight * gifToRenderRatio;
+  const colours = randomColours();
 
-  const params = {x, y, levels, width, height, colours: randomColours()};
+  const params = {x, y, levels, width, height, colours};
 
   function takeSliceFrom(keyFrameData, sliceFrameData) {
       // Ratio of slice frame dimensions to keyFrame dimensions
@@ -213,7 +214,9 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
         ]
       );
 
-      if (!frameData.previousKeyFrame) return Promise.resolve(outputFile1);
+      if (!frameData.previousKeyFrame || colours.psychedelic) {
+        return Promise.resolve(outputFile1);
+      }
 
       let prev = frameData.previousKeyFrame;
       let outputFile2 = `./frames/${frameNumber}_a.gif`;
@@ -258,6 +261,7 @@ exports.createGif = function(params) {
       ].concat(paths).concat([
         '-O',
         '--colors', '256',
+        '--dither',
         '-o', outputFile
       ])
     );
