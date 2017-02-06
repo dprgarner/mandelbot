@@ -3,6 +3,7 @@
 const fs = require('fs');
 
 const _ = require('underscore');
+const Color = require('color');
 const GIFEncoder = require('gif-stream/encoder');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
@@ -64,7 +65,7 @@ exports.randomColours = function() {
   ], i => (
     (Math.random() < 0.7) ? i : 255 - i
   ));
-  let permute = Math.floor(Math.random() * 3)
+  let permute = Math.floor(Math.random() * 3);
   if (permute > 0) sparse.splice(0, 0, sparse.pop());
   if (permute > 1) sparse.splice(0, 0, sparse.pop());
 
@@ -85,7 +86,9 @@ exports.randomColours = function() {
     }
   }
 
-  const psychedelic = Math.random() < 0.2;
+  let psychedelic = Math.random() < 0.2 && (
+    Math.random() < 0.5 ? 'rainbow': 'weird'
+  );
 
   return {
     sparse,
@@ -105,9 +108,9 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let colorG = {};
   let colorB = {};
 
-  const [sparseR, sparseG, sparseB] = colours && colours.sparse || [0, 0, 255];
-  const [denseR, denseG, denseB] = colours && colours.dense || [255, 255, 0];
-  const [mandelbrotR, mandelbrotG, mandelbrotB] = colours && colours.mandelbrot || [0, 0, 0];
+  const [sparseR, sparseG, sparseB] = colours.sparse;
+  const [denseR, denseG, denseB] = colours.dense;
+  const [mandelbrotR, mandelbrotG, mandelbrotB] = colours.mandelbrot;
 
   let minIterations = depth;
   let maxIterations = 0;
@@ -118,9 +121,22 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         maxIterations = Math.max(maxIterations, mandelbrot[y][x]);
       }
 
+  const randomFactor = 1 + Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
-    if (colours && colours.psychedelic) {
+    if (colours.psychedelic === 'rainbow') {
+      s = Math.round(64 * Math.log(j));
+      let color = Color({
+        h: randomFactor * s,
+        s: 85 + 15 * Math.sin(s / 50),
+        v: 95 + 5 * Math.sin(s / 33),
+      }).rgb().round();
+
+      colorR[j] = color.red();
+      colorG[j] = color.green();
+      colorB[j] = color.blue();
+      continue;
+    } else if (colours.psychedelic === 'weird') {
       s = Math.round(64 * Math.log(j));
     } else {
       s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));

@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "color": "^1.0.3",
+    "color-scheme": "0.0.5",
     "combined-stream": "^1.0.5",
     "ffmpeg-binaries": "^3.2.2-3",
     "gif-stream": "^1.1.0",
