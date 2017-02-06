@@ -20,7 +20,7 @@ const randomColours = require('./mandelbrot').randomColours;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 const ffmpeg = process.env.container === 'docker' ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
-const gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
+const gifsicle = exports.gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
 const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
 
 // Trajectory of the centre of the viewport: start at origin, go to
@@ -71,24 +71,24 @@ function generateKeyFrameImages(params) {
   }));
 }
 
-function mergeGifs({ratio, path1, path2, path3, width, height}) {
-  function bufferGif(filePath) {
-    return toArray(
-      fs.createReadStream(filePath).pipe(new GIFDecoder)
-    )
-    .then((parts) => {
-      var buffers = []
-      for (var i = 0, l = parts.length; i < l ; ++i) {
-        var part = parts[i]
-        buffers.push((part instanceof Buffer) ? part : new Buffer(part))
-      }
-      return Buffer.concat(buffers)
-    });
-  }
+exports.bufferGif = function(filePath) {
+  return toArray(
+    fs.createReadStream(filePath).pipe(new GIFDecoder)
+  )
+  .then((parts) => {
+    var buffers = []
+    for (var i = 0, l = parts.length; i < l ; ++i) {
+      var part = parts[i]
+      buffers.push((part instanceof Buffer) ? part : new Buffer(part))
+    }
+    return Buffer.concat(buffers)
+  });
+}
 
+function mergeGifs({ratio, path1, path2, path3, width, height}) {
   return new Promise((resolve, reject) => {
-    bufferGif(path1).then((bufferA) => {
-      bufferGif(path2).then((bufferB) => {
+    exports.bufferGif(path1).then((bufferA) => {
+      exports.bufferGif(path2).then((bufferB) => {
         const s = new PixelStream(width, height, {colorSpace: 'rgb'});
         const ratioBar = 1 - ratio;
 
@@ -210,11 +210,6 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
             path,
             '-o', `${outputFile}`,
           ],
-          (err) => {
-            if (err) return reject(err);
-            // console.log(`Drawn frame ${frameNumber} after ${Date.now() - startTime}ms`);
-            resolve(outputFile);
-          }
         );
       })
       .then((firstOutputFile) => new Promise((resolve, reject) => {
