@@ -138,9 +138,8 @@ function padWithZeroes(i) {
 exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeight}) {
   let startTime = Date.now();
 
-  const gifToRenderRatio = 4;
-  const width = gifWidth * gifToRenderRatio;
-  const height = gifHeight * gifToRenderRatio;
+  const width = 4 * gifWidth;
+  const height = 4 * gifHeight;
   const colours = randomColours();
 
   const params = {x, y, levels, width, height, colours};
@@ -214,7 +213,7 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
         ]
       );
 
-      if (!frameData.previousKeyFrame || colours.psychedelic) {
+      if (!frameData.previousKeyFrame) {
         return Promise.resolve(outputFile1);
       }
 
@@ -231,8 +230,7 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
           '-o', `${outputFile2}`,
         ]
       );
-      const fade = 1 - gifToRenderRatio * (cropWidth / width - 1 / gifToRenderRatio);
-
+      const fade = Math.min(1, Math.max(0, 1 - 2 * (cropWidth / width - 0.5)));
       let outputFile3 = `./frames/${frameNumber}_b.gif`;
 
       return mergeGifs({
@@ -261,7 +259,6 @@ exports.createGif = function(params) {
       ].concat(paths).concat([
         '-O',
         '--colors', '256',
-        '--dither',
         '-o', outputFile
       ])
     );

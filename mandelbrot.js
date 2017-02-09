@@ -57,6 +57,8 @@ exports.constructSet = function(params) {
   return set;
 };
 
+
+// See: http://c0bra.github.io/color-scheme-js/
 exports.randomColours = function() {
   let sparse = _.map([
     Math.floor(Math.random() * 32),
@@ -94,7 +96,7 @@ exports.randomColours = function() {
     sparse,
     dense,
     mandelbrot,
-    psychedelic,
+    psychedelic: 'weird',
   };
 }
 
@@ -135,19 +137,33 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       colorR[j] = color.red();
       colorG[j] = color.green();
       colorB[j] = color.blue();
-      continue;
     } else if (colours.psychedelic === 'weird') {
-      s = Math.round(64 * Math.log(j));
+      colorR[j] = Math.floor(Math.random() * 256);
+      colorG[j] = Math.floor(Math.random() * 256);
+      colorB[j] = Math.floor(Math.random() * 256);
     } else {
       s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+      colorR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
+      colorG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
+      colorB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
     }
-
-    colorR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
-    colorG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
-    colorB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
   }
 
-  let s = new PixelStream(width, height, {colorSpace: 'rgb'})
+  // Tame the psychedelic madness somewhat. If the pixel is surrounded by
+  // pixels of four different colours, then make the pixel the 'deep colour'.
+  const deepColorR = Math.floor(Math.random() * 256);
+  const deepColorG = Math.floor(Math.random() * 256);
+  const deepColorB = Math.floor(Math.random() * 256);
+
+  function isIsolated(y, x) {
+    if (!mandelbrot[y][x]) return false;
+    if (y < height - 1 && mandelbrot[y+1][x] && mandelbrot[y][x] === mandelbrot[y+1][x]) return false;
+    if (y > 0 && mandelbrot[y-1][x] && mandelbrot[y][x] === mandelbrot[y-1][x]) return false;
+    if (x < width - 1 && mandelbrot[y][x+1] && mandelbrot[y][x] === mandelbrot[y][x+1]) return false;
+    if (x > 0 && mandelbrot[y][x-1] && mandelbrot[y][x] === mandelbrot[y][x-1]) return false;
+    return true;
+  }
+
   let data = Buffer.alloc(width * height * 3);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -157,6 +173,10 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         data[idx] = mandelbrotR;
         data[idx + 1] = mandelbrotG;
         data[idx + 2] = mandelbrotB;
+      } else if (colours.psychedelic === 'weird' && isIsolated(y, x)) {
+        data[idx] = deepColorR;
+        data[idx + 1] = deepColorG;
+        data[idx + 2] = deepColorB;
       } else {
         data[idx] = colorR[iterations];
         data[idx + 1] = colorG[iterations];
@@ -164,6 +184,8 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       }
     }
   }
+
+  let s = new PixelStream(width, height, {colorSpace: 'rgb'})
   s.push(data);
   s.end();
   return s;
