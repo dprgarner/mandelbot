@@ -110,9 +110,9 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let height = mandelbrot.length;
   let f = 1 / Math.log(depth);
 
-  let colorR = {};
-  let colorG = {};
-  let colorB = {};
+  let colourR = {};
+  let colourG = {};
+  let colourB = {};
 
   const [sparseR, sparseG, sparseB] = colours.sparse;
   const [denseR, denseG, denseB] = colours.dense;
@@ -132,33 +132,33 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
     let s;
     if (colours.mode === 'rainbow') {
       s = Math.round(64 * Math.log(j));
-      let color = Color({
+      let colour = Color({
         h: Math.round(randomRainbowFactor * (s + 1)),
         s: 85 + 15 * Math.sin(s / 50),
         v: 95 + 5 * Math.sin(s / 33),
       }).rgb().round();
 
-      colorR[j] = color.red();
-      colorG[j] = color.green();
-      colorB[j] = color.blue();
+      colourR[j] = colour.red();
+      colourG[j] = colour.green();
+      colourB[j] = colour.blue();
     } else if (colours.mode === 'weird') {
-      colorR[j] = Math.floor(Math.random() * 256);
-      colorG[j] = Math.floor(Math.random() * 256);
-      colorB[j] = Math.floor(Math.random() * 256);
+      colourR[j] = Math.floor(Math.random() * 256);
+      colourG[j] = Math.floor(Math.random() * 256);
+      colourB[j] = Math.floor(Math.random() * 256);
     } else {
       s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
-      colorR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
-      colorG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
-      colorB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
+      colourR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
+      colourG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
+      colourB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
     }
   }
 
   // Tame the psychedelic madness somewhat. If the pixel is surrounded by
   // pixels of four different colours in rainbow or weird mode, then make the
   // pixel the 'deep colour'.
-  const deepColorR = Math.floor(Math.random() * 256);
-  const deepColorG = Math.floor(Math.random() * 256);
-  const deepColorB = Math.floor(Math.random() * 256);
+  const deepColourR = Math.floor(Math.random() * 256);
+  const deepColourG = Math.floor(Math.random() * 256);
+  const deepColourB = Math.floor(Math.random() * 256);
 
   function isIsolated(y, x) {
     if (!mandelbrot[y][x]) return false;
@@ -179,13 +179,13 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         data[idx + 1] = mandelbrotG;
         data[idx + 2] = mandelbrotB;
       } else if (colours.mode !== 'normal' && isIsolated(y, x)) {
-        data[idx] = deepColorR;
-        data[idx + 1] = deepColorG;
-        data[idx + 2] = deepColorB;
+        data[idx] = deepColourR;
+        data[idx + 1] = deepColourG;
+        data[idx + 2] = deepColourB;
       } else {
-        data[idx] = colorR[iterations];
-        data[idx + 1] = colorG[iterations];
-        data[idx + 2] = colorB[iterations];
+        data[idx] = colourR[iterations];
+        data[idx + 1] = colourG[iterations];
+        data[idx + 2] = colourB[iterations];
       }
     }
   }
