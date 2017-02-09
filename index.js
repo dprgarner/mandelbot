@@ -12,9 +12,9 @@ const {uploadMedia, updateStatus} = require('./twitter');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
-    // Wait until the next two-hour point.
-    let twoHours = 1000 * 60 * 60 * 2;
-    let msUntilTime = twoHours - (Date.now() % twoHours);
+    // Wait until the next three-hour point.
+    let tweetInterval = 1000 * 60 * 60 * 3;
+    let msUntilTime = tweetInterval - (Date.now() % tweetInterval);
     setTimeout(resolve, msUntilTime);
   });
 }

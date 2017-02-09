@@ -88,15 +88,19 @@ exports.randomColours = function() {
     }
   }
 
-  let psychedelic = Math.random() < 0.2 && (
-    Math.random() < 0.5 ? 'rainbow': 'weird'
-  );
+  let mode = 'normal';
+  let modeChoice = Math.random() / 5;
+  if (modeChoice < 0.1) {
+    mode = 'rainbow';
+  } else if (modeChoice < 0.2) {
+    mode = 'weird';
+  }
 
   return {
     sparse,
     dense,
     mandelbrot,
-    psychedelic: 'weird',
+    mode,
   };
 }
 
@@ -123,13 +127,13 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         maxIterations = Math.max(maxIterations, mandelbrot[y][x]);
       }
 
-  const randomFactor = 1 + Math.random();
+  const randomRainbowFactor = Math.random() * 50 + 2 * Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
-    if (colours.psychedelic === 'rainbow') {
+    if (colours.mode === 'rainbow') {
       s = Math.round(64 * Math.log(j));
       let color = Color({
-        h: randomFactor * s,
+        h: Math.round(randomRainbowFactor * (s + 1)),
         s: 85 + 15 * Math.sin(s / 50),
         v: 95 + 5 * Math.sin(s / 33),
       }).rgb().round();
@@ -137,7 +141,7 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       colorR[j] = color.red();
       colorG[j] = color.green();
       colorB[j] = color.blue();
-    } else if (colours.psychedelic === 'weird') {
+    } else if (colours.mode === 'weird') {
       colorR[j] = Math.floor(Math.random() * 256);
       colorG[j] = Math.floor(Math.random() * 256);
       colorB[j] = Math.floor(Math.random() * 256);
@@ -150,7 +154,8 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   }
 
   // Tame the psychedelic madness somewhat. If the pixel is surrounded by
-  // pixels of four different colours, then make the pixel the 'deep colour'.
+  // pixels of four different colours in rainbow or weird mode, then make the
+  // pixel the 'deep colour'.
   const deepColorR = Math.floor(Math.random() * 256);
   const deepColorG = Math.floor(Math.random() * 256);
   const deepColorB = Math.floor(Math.random() * 256);
@@ -173,7 +178,7 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         data[idx] = mandelbrotR;
         data[idx + 1] = mandelbrotG;
         data[idx + 2] = mandelbrotB;
-      } else if (colours.psychedelic === 'weird' && isIsolated(y, x)) {
+      } else if (colours.mode !== 'normal' && isIsolated(y, x)) {
         data[idx] = deepColorR;
         data[idx + 1] = deepColorG;
         data[idx + 2] = deepColorB;
