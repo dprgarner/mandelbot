@@ -258,7 +258,6 @@ exports.createGif = function(params) {
         '-d6',
       ].concat(paths).concat([
         '-O',
-        '--colors', '256',
         '-o', outputFile
       ])
     );

@@ -4,6 +4,7 @@ const fs = require('fs');
 
 const _ = require('underscore');
 const Color = require('color');
+const ColorScheme = require('color-scheme')
 const GIFEncoder = require('gif-stream/encoder');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
@@ -60,32 +61,72 @@ exports.constructSet = function(params) {
 
 // See: http://c0bra.github.io/color-scheme-js/
 exports.randomColours = function() {
-  let sparse = _.map([
-    Math.floor(Math.random() * 32),
-    Math.floor(Math.random() * 16),
-    Math.floor(Math.random() * 64),
-  ], i => (
-    (Math.random() < 0.7) ? i : 255 - i
-  ));
-  let permute = Math.floor(Math.random() * 3);
-  if (permute > 0) sparse.splice(0, 0, sparse.pop());
-  if (permute > 1) sparse.splice(0, 0, sparse.pop());
+  // TODO remove this color scheme package as we could just do this by hand
+  // better.
+  let mbColour, sparseColour, denseColour;
 
-  let dense = _.map(sparse, (i) => (
-    Math.max(0, Math.min(255, 255 - i + Math.floor((Math.random() * 16) - 2) * 16))
-  ));
-  let mandelbrot = [0, 0, 0];
+  while (true) {
+    mbColour = Color(0);
 
-  if (Math.random() < 0.5) {
-    sparse = _.map(sparse, i => 255 - i);
-    dense = _.map(dense, i => 255 - i);
+    console.log('color attempt');
+    let scm = new ColorScheme()
+    .from_hue(Math.floor(Math.random() * 256))
+    .scheme('triade')
+    .distance(Math.random())
+    .add_complement(false)
+    .variation(Math.random() < 0.5 ? 'hard' : 'default')
+    .web_safe(true);
+    // An array of twelve colours, in three groups of four, where colours in
+    // each group are similar hues. The second colour in each group is the darkest,
+    // the third colour is the lightest (and is very very pale).
 
-    if (Math.random() < 0.5) {
-      sparse = _.map(sparse, i => Math.random() < 0.7 ? Math.round(i / 2) : i);
-      mandelbrot = _.map([255, 255, 255], i => (
-        Math.random() < 0.7 ? i : 255 - Math.floor(Math.random() * 64)
-      ));
+    let colourStrings;
+    // There are some bugs in the package :(
+    try {
+      colourStrings = scm.colors();
+    } catch (err) {
+      console.error(err);
+      continue;
     }
+    let colours = _.map(colourStrings, str => Color(`#${str}`));
+    console.log(colours);
+
+    if (true || Math.random() < 0.5) {
+      // Non-black Mandelbrot. Find a suitable colour (either very dark or very
+      // pale)
+      let candidates = _.filter(colours, c => 
+        c.hsl().lightness() <= 20 //|| c.hsl().lightness() >= 80
+      );
+      console.log('non-black MB candidates:');
+      console.log(candidates);
+      if (candidates.length) {
+        mbColour = candidates[_.random(candidates.length - 1)];
+        colours.splice(colours.indexOf(mbColour) * 4, 4);
+        if (mbColour.hsl().lightness() < 20) mbColour.darken(0.9);
+        if (mbColour.hsl().lightness() > 80) mbColour.lighten(0.5);
+      }
+    }
+    denseColour = colours[_.random(colours.length - 1)];
+    sparseColour = colours[_.random(colours.length - 1)];
+    console.log('dense colour:', denseColour.hsl().array())
+    console.log('sparse colour:', sparseColour.hsl().array())
+    console.log('mb colour:', mbColour.hsl().array())
+
+    const lightnessDifference = (color1, color2) => (
+      Math.abs(color1.hsl().lightness() - color2.hsl().lightness())
+    );
+
+    function hueDifference(color1, color2) {
+      let naiveDifference = Math.abs(color1.hsl().hue() - color2.hsl().hue());
+      return Math.min(naiveDifference, 360 - naiveDifference);
+    }
+
+    if (hueDifference(denseColour, sparseColour) < 75) continue;
+    if (hueDifference(mbColour, denseColour) < 75) continue;
+    if (lightnessDifference(denseColour, sparseColour) < 40) continue;
+    if (lightnessDifference(mbColour, denseColour) < 40) continue;
+    if (lightnessDifference(sparseColour, mbColour) < 20) continue;
+    break;
   }
 
   let mode = 'normal';
@@ -97,10 +138,10 @@ exports.randomColours = function() {
   }
 
   return {
-    sparse,
-    dense,
-    mandelbrot,
-    mode,
+    sparse: sparseColour.rgb().round().array(),
+    dense: denseColour.rgb().round().array(),
+    mandelbrot: mbColour.rgb().round().array(),
+    mode: 'normal',
   };
 }
 
@@ -109,14 +150,6 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let width = mandelbrot[0].length;
   let height = mandelbrot.length;
   let f = 1 / Math.log(depth);
-
-  let colourR = {};
-  let colourG = {};
-  let colourB = {};
-
-  const [sparseR, sparseG, sparseB] = colours.sparse;
-  const [denseR, denseG, denseB] = colours.dense;
-  const [mandelbrotR, mandelbrotG, mandelbrotB] = colours.mandelbrot;
 
   let minIterations = depth;
   let maxIterations = 0;
@@ -127,38 +160,35 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
         maxIterations = Math.max(maxIterations, mandelbrot[y][x]);
       }
 
+  let colourAtDepth = [];
   const randomRainbowFactor = Math.random() * 50 + 2 * Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
     if (colours.mode === 'rainbow') {
       s = Math.round(64 * Math.log(j));
-      let colour = Color({
-        h: Math.round(randomRainbowFactor * (s + 1)),
-        s: 85 + 15 * Math.sin(s / 50),
-        v: 95 + 5 * Math.sin(s / 33),
-      }).rgb().round();
-
-      colourR[j] = colour.red();
-      colourG[j] = colour.green();
-      colourB[j] = colour.blue();
+      colourAtDepth[j] = Color({
+        h: Math.round(randomRainbowFactor * (s + 1)) % 256,
+        s: Math.round(65 + Math.random() * 15 * Math.sin(s / 50)),
+        v: Math.round(95 + 5 * Math.sin(s / 33)),
+      }).rgb().round().array();
     } else if (colours.mode === 'weird') {
-      colourR[j] = Math.floor(Math.random() * 256);
-      colourG[j] = Math.floor(Math.random() * 256);
-      colourB[j] = Math.floor(Math.random() * 256);
+      colourAtDepth[j] = _.times(3, () => Math.floor(Math.random() * 256));
     } else {
       s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
-      colourR[j] = Math.round(s * denseR + (1 - s) * sparseR) % 256;
-      colourG[j] = Math.round(s * denseG + (1 - s) * sparseG) % 256;
-      colourB[j] = Math.round(s * denseB + (1 - s) * sparseB) % 256;
+      colourAtDepth[j] = _.times(3, i => (
+        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i]) % 256
+      ));
     }
   }
 
   // Tame the psychedelic madness somewhat. If the pixel is surrounded by
   // pixels of four different colours in rainbow or weird mode, then make the
   // pixel the 'deep colour'.
-  const deepColourR = Math.floor(Math.random() * 256);
-  const deepColourG = Math.floor(Math.random() * 256);
-  const deepColourB = Math.floor(Math.random() * 256);
+  const deepColour = [
+    Math.floor(Math.random() * 256),
+    Math.floor(Math.random() * 256),
+    Math.floor(Math.random() * 256),
+  ];
 
   function isIsolated(y, x) {
     if (!mandelbrot[y][x]) return false;
@@ -170,27 +200,25 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   }
 
   let data = Buffer.alloc(width * height * 3);
+  const appendColour = (idx, colour) => _.each(_.range(3), i => {
+    data[idx + i] = colour[i];
+  });
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       let iterations = mandelbrot[y][x];
       let idx = (y * width + x) * 3;
       if (!iterations) {
-        data[idx] = mandelbrotR;
-        data[idx + 1] = mandelbrotG;
-        data[idx + 2] = mandelbrotB;
+        appendColour(idx, colours.mandelbrot);
       } else if (colours.mode !== 'normal' && isIsolated(y, x)) {
-        data[idx] = deepColourR;
-        data[idx + 1] = deepColourG;
-        data[idx + 2] = deepColourB;
+        appendColour(idx, deepColour);
       } else {
-        data[idx] = colourR[iterations];
-        data[idx + 1] = colourG[iterations];
-        data[idx + 2] = colourB[iterations];
+        appendColour(idx, colourAtDepth[iterations]);
       }
     }
   }
 
-  let s = new PixelStream(width, height, {colorSpace: 'rgb'})
+  let s = new PixelStream(width, height, {colorSpace: 'rgb'});
   s.push(data);
   s.end();
   return s;
