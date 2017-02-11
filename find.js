@@ -219,7 +219,7 @@ function scry({width, height}) {
   let tries = 5;
   let potentials = [];
 
-  if (process.env.TEST) return {x, y, level, depth};
+  if (process.env.TEST.trim()) return {x, y, level, depth};
 
   for (let j = 0; j < tries; j++) {
     attempt++; // Logging

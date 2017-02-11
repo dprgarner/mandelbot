@@ -7,13 +7,14 @@ const createGif = require('./animate').createGif;
 const createMp4 = require('./animate').createMp4;
 const gifsicle = require('./animate').gifsicle;
 const find = require('./find');
+const uploadVimeo = require('./uploadVimeo');
 const uploadGfycat = require('./uploadGfycat');
 const {uploadMedia, updateStatus} = require('./twitter');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
     // Wait until the next three-hour point.
-    let tweetInterval = 1000 * 60 * 60 * 3;
+    let tweetInterval = 1000 * 60 * 60 * 2;
     let msUntilTime = tweetInterval - (Date.now() % tweetInterval);
     setTimeout(resolve, msUntilTime);
   });
@@ -38,12 +39,11 @@ function tweetGifWithImages({levels}, url) {
 
   return Promise.all(_.map(stillImages, uploadOptimisedMedia))
   .then((mediaIds) => {
-    let params = {status: `Full resolution GIF: ${url}`, media_ids: mediaIds}
+    let params = {status: `High-resolution GIF here: ${url}`, media_ids: mediaIds}
     return updateStatus(params)
   })
   .then(({id_str}) => `https://twitter.com/BenoitMandelbot/status/${id_str}`);
 }
-
 
 const width = (process.env.TEST.trim()) ? 504 / 2 : 504;
 const approxHeight = Math.floor(width * 2 / 3);
@@ -55,37 +55,59 @@ let params = _.extend({}, find({width: 150, height: 100}), {
   height,
 });
 
-
 if (process.env.TEST.trim()) params.levels = 8;
 console.log(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 
-createGif(params)
-.then((outputFile) => {
-  let seconds = Math.round((Date.now() - startTime) / 1000);
-  console.log(`${outputFile} completed after ${seconds}s`);
+if (Math.random() < 0.7) {
+  // Upload a GIF to gfycat with four keyframe images
+  createGif(params)
+  .then((outputFile) => {
+    let seconds = Math.round((Date.now() - startTime) / 1000);
+    console.log(`${outputFile} completed after ${seconds}s`);
 
-  if (process.env.live) {
-    return uploadGfycat(outputFile)
-    .then((url) => {
-      console.log(`Successfully uploaded to ${url}`)
-      console.log('Waiting until next hour to tweet');
-      return waitUntilDueTime().then(() => tweetGifWithImages(params, url));
-    })
-    .then((tweetUrl) => {
-      console.log(`Tweet: ${tweetUrl}`);
-      process.exit(0);
-    });
-  }
-})
-.catch((err) => {
-  console.error(err);
-  console.error(`Errored after ${Date.now() - startTime}ms`);
-  process.exit(1);
-});
+    if (process.env.live.trim()) {
+      return uploadGfycat(outputFile)
+      .then((url) => {
+        console.log(`Successfully uploaded to ${url}`)
+        console.log('Waiting until next opportunity to tweet');
+        return waitUntilDueTime().then(() => tweetGifWithImages(params, url));
+      })
+      .then((tweetUrl) => {
+        console.log(`Tweet: ${tweetUrl}`);
+        process.exit(0);
+      });
+    }
+  })
+  .catch((err) => {
+    console.error(err);
+    console.error(`Errored after ${Date.now() - startTime}ms`);
+    process.exit(1);
+  }); 
+} else {
+  // Upload a vimeo video
+  createMp4(params)
+  .then((outputFile) => {
+    let seconds = Math.round((Date.now() - startTime) / 1000);
+    console.log(`${outputFile} completed after ${seconds}s`);
 
-// createMp4(params)
-// .catch((err) => {
-//   console.error(err);
-//   console.error(`Errored after ${Date.now() - startTime}ms`);
-//   process.exit(1);
-// });
+    if (process.env.live.trim()) {
+      return uploadVimeo(outputFile)
+      .then((url) => {
+        console.log(`Successfully uploaded to ${url}`)
+        console.log('Waiting until next opportunity to tweet');
+        return waitUntilDueTime()
+        .then(() => updateStatus({status: url}))
+        .then(({id_str}) => `https://twitter.com/BenoitMandelbot/status/${id_str}`);
+      })
+      .then((tweetUrl) => {
+        console.log(`Tweet: ${tweetUrl}`);
+        process.exit(0);
+      });
+    }
+  })
+  .catch((err) => {
+    console.error(err);
+    console.error(`Errored after ${Date.now() - startTime}ms`);
+    process.exit(1);
+  });
+}

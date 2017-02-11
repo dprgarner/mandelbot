@@ -269,7 +269,7 @@ exports.createGif = function(params) {
 exports.createMp4 = function(params) {
   let startTime = Date.now();
   return exports.createFrames(params)
-  .then((paths) => new Promise((resolve, reject) => {
+  .then((paths) => {
     const concatFile = './concat.txt';
     const fileName = md5(Date.now()).substr(0, 12);
     const outputFile = `${OUTPUT_DIR}/${fileName}.mp4`;
@@ -295,5 +295,5 @@ exports.createMp4 = function(params) {
 
     console.log(`Collated mp4 after ${Date.now() - startTime}ms`);
     return outputFile;
-  }));
+  });
 };
