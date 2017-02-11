@@ -57,7 +57,7 @@ const generateFrameData = (params) => (level) => {
 
   return {
     level,
-    scale: Math.pow(2, -8 - level),
+    scale: Math.pow(2, -8 - level + (process.env.TEST ? 2 : 0)),
     x: originX + (x - originX) * pos(level),
     y: originY + (y - originY) * pos(level),
     depth: 500 + Math.floor(100 * level),

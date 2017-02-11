@@ -219,6 +219,8 @@ function scry({width, height}) {
   let tries = 5;
   let potentials = [];
 
+  if (process.env.TEST) return {x, y, level, depth};
+
   for (let j = 0; j < tries; j++) {
     attempt++; // Logging
     depth = depthAdjust + 100 * level;
@@ -316,7 +318,7 @@ module.exports = function ({width, height}) {
   console.log(`Found a mandelbrot copy after ${attempt} attempts`);
 
   let params = _.extend({}, target, {
-    scale: Math.pow(2, -8 - target.level),
+    scale: Math.pow(2, -8 - target.level + (process.env.TEST ? 2 : 0)),
     levels: target.level,
   });
 
