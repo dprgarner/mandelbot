@@ -3,8 +3,8 @@
 const fs = require('fs');
 
 const _ = require('underscore');
+const chroma = require('chroma-js');
 const Color = require('color');
-const ColorScheme = require('color-scheme')
 const GIFEncoder = require('gif-stream/encoder');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
@@ -58,92 +58,47 @@ exports.constructSet = function(params) {
   return set;
 };
 
-
-// See: http://c0bra.github.io/color-scheme-js/
 exports.randomColours = function() {
-  // TODO remove this color scheme package as we could just do this by hand
-  // better.
-  let mbColour, sparseColour, denseColour;
+  let sparseColour, denseColour, mandelbrotColour;
 
-  while (true) {
-    mbColour = Color(0);
+  do {
+    denseColour = Color(chroma.random().hex());
+    denseColour.saturate(0.5 + 0.5 * Math.random());
 
-    console.log('color attempt');
-    let scm = new ColorScheme()
-    .from_hue(Math.floor(Math.random() * 256))
-    .scheme('triade')
-    .distance(Math.random())
-    .add_complement(false)
-    .variation(Math.random() < 0.5 ? 'hard' : 'default')
-    .web_safe(true);
-    // An array of twelve colours, in three groups of four, where colours in
-    // each group are similar hues. The second colour in each group is the darkest,
-    // the third colour is the lightest (and is very very pale).
+    sparseColour = Color(chroma.random().hex());
+    sparseColour.saturate(0.5 + 0.5 * Math.random());
 
-    let colourStrings;
-    // There are some bugs in the package :(
-    try {
-      colourStrings = scm.colors();
-    } catch (err) {
-      console.error(err);
-      continue;
-    }
-    let colours = _.map(colourStrings, str => Color(`#${str}`));
-    console.log(colours);
-
-    if (true || Math.random() < 0.5) {
-      // Non-black Mandelbrot. Find a suitable colour (either very dark or very
-      // pale)
-      let candidates = _.filter(colours, c => 
-        c.hsl().lightness() <= 20 //|| c.hsl().lightness() >= 80
-      );
-      console.log('non-black MB candidates:');
-      console.log(candidates);
-      if (candidates.length) {
-        mbColour = candidates[_.random(candidates.length - 1)];
-        colours.splice(colours.indexOf(mbColour) * 4, 4);
-        if (mbColour.hsl().lightness() < 20) mbColour.darken(0.9);
-        if (mbColour.hsl().lightness() > 80) mbColour.lighten(0.5);
-      }
-    }
-    denseColour = colours[_.random(colours.length - 1)];
-    sparseColour = colours[_.random(colours.length - 1)];
-    console.log('dense colour:', denseColour.hsl().array())
-    console.log('sparse colour:', sparseColour.hsl().array())
-    console.log('mb colour:', mbColour.hsl().array())
-
-    const lightnessDifference = (color1, color2) => (
-      Math.abs(color1.hsl().lightness() - color2.hsl().lightness())
-    );
-
-    function hueDifference(color1, color2) {
-      let naiveDifference = Math.abs(color1.hsl().hue() - color2.hsl().hue());
-      return Math.min(naiveDifference, 360 - naiveDifference);
+    mandelbrotColour = Color(0);
+    if (Math.random() < 0.2) {
+      mandelbrotColour = Color(chroma.random().hex()).darken(0.7);
+      mandelbrotColour.saturate(0.5 + 0.5 * Math.random());
     }
 
-    if (hueDifference(denseColour, sparseColour) < 75) continue;
-    if (hueDifference(mbColour, denseColour) < 75) continue;
-    if (lightnessDifference(denseColour, sparseColour) < 40) continue;
-    if (lightnessDifference(mbColour, denseColour) < 40) continue;
-    if (lightnessDifference(sparseColour, mbColour) < 20) continue;
-    break;
-  }
+    if (Math.random() < 0.25) {
+      denseColour = denseColour.negate();
+      sparseColour = sparseColour.negate();
+      mandelbrotColour = mandelbrotColour.negate();
+    }
+  } while (
+    chroma.contrast(denseColour.hex(), sparseColour.hex()) < 4.5 ||
+    chroma.contrast(mandelbrotColour.hex(), sparseColour.hex()) < 2
+  )
 
   let mode = 'normal';
-  let modeChoice = Math.random() / 5;
-  if (modeChoice < 0.1) {
+  let modeChoice = Math.random();
+  if (modeChoice < 0.6) {
     mode = 'rainbow';
-  } else if (modeChoice < 0.2) {
+  } else if (modeChoice < 0.3) {
     mode = 'weird';
   }
 
   return {
+    mode,
     sparse: sparseColour.rgb().round().array(),
     dense: denseColour.rgb().round().array(),
-    mandelbrot: mbColour.rgb().round().array(),
-    mode: 'normal',
+    mandelbrot: mandelbrotColour.rgb().round().array(),
   };
-}
+};
 
 exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   let startTime = Date.now();

@@ -318,7 +318,7 @@ module.exports = function ({width, height}) {
   console.log(`Found a mandelbrot copy after ${attempt} attempts`);
 
   let params = _.extend({}, target, {
-    scale: Math.pow(2, -8 - target.level + (process.env.TEST ? 2 : 0)),
+    scale: Math.pow(2, -8 - target.level + (process.env.TEST.trim() ? 2 : 0)),
     levels: target.level,
   });
 

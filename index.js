@@ -45,7 +45,7 @@ function tweetGifWithImages({levels}, url) {
 }
 
 
-const width = (process.env.TEST) ? 504 / 2 : 504;
+const width = (process.env.TEST.trim()) ? 504 / 2 : 504;
 const approxHeight = Math.floor(width * 2 / 3);
 const height = approxHeight + approxHeight % 2; // Height must be divisible by 2
 
@@ -54,7 +54,9 @@ let params = _.extend({}, find({width: 150, height: 100}), {
   width,
   height,
 });
-if (process.env.TEST) params.levels = 8;
+
+
+if (process.env.TEST.trim()) params.levels = 8;
 console.log(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 
 createGif(params)
