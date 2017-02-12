@@ -1,12 +1,16 @@
 {
   "name": "mandelbot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Generate and tweet Mandelbrot gifs and videos",
   "main": "create.js",
   "scripts": {
     "start": "node create.js"
   },
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dprgarner/mandelbot"
+  },
+  "author": "David Garner",
   "license": "ISC",
   "dependencies": {
     "chroma-js": "^1.2.2",
