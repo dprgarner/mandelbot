@@ -86,9 +86,9 @@ exports.randomColours = function() {
 
   let mode = 'normal';
   let modeChoice = Math.random();
-  if (modeChoice < 0.6) {
+  if (modeChoice < 0.8) {
     mode = 'rainbow';
-  } else if (modeChoice < 0.3) {
+  } else if (modeChoice < 0.4) {
     mode = 'weird';
   }
 
@@ -133,6 +133,8 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       colourAtDepth[j] = _.times(3, i => (
         Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i]) % 256
       ));
+      // Oversaturate the colours somewhat
+      colourAtDepth[j] = Color(colourAtDepth[j]).saturate(0.75).rgb().array()
     }
   }
 

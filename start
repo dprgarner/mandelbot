@@ -1,7 +1,6 @@
 #!/bin/bash -e
 
 export LIVE=1
-export TEST=1
 
 while true; do
     node index.js
