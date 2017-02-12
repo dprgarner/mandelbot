@@ -4,8 +4,6 @@ const rp = require('request-promise');
 
 const gfycatAuth = require('./auth').gfycatAuth;
 
-const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
-
 // http://giant.gfycat.com/TightTediousBanteng.gif
 // https://giant.gfycat.com/UnlawfulSeveralFluke.gif
 

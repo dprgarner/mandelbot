@@ -19,9 +19,9 @@ const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const randomColours = require('./mandelbrot').randomColours;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
-const ffmpeg = process.env.container === 'docker' ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
-const gifsicle = exports.gifsicle = process.env.container === 'docker' ? '/usr/bin/gifsicle' : require('gifsicle');
-const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
+const {OUTPUT_DIR, TEST, DOCKER} = require('./env');
+const ffmpeg = DOCKER ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
+const gifsicle = exports.gifsicle = DOCKER ? '/usr/bin/gifsicle' : require('gifsicle');
 
 // Input: list of promise *generators*.
 // Output: promise which resolves promises one-at-a-time in sequence, which
@@ -57,7 +57,7 @@ const generateFrameData = (params) => (level) => {
 
   return {
     level,
-    scale: Math.pow(2, -8 - level + (process.env.TEST.trim() ? 2 : 0)),
+    scale: Math.pow(2, -8 - level + (TEST ? 2 : 0)),
     x: originX + (x - originX) * pos(level),
     y: originY + (y - originY) * pos(level),
     depth: 500 + Math.floor(100 * level),

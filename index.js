@@ -10,6 +10,7 @@ const find = require('./find');
 const uploadVimeo = require('./uploadVimeo');
 const uploadGfycat = require('./uploadGfycat');
 const {uploadMedia, updateStatus} = require('./twitter');
+const {LIVE, TEST} = require('./env');
 
 function waitUntilDueTime() {
   return new Promise((resolve, reject) => {
@@ -45,7 +46,7 @@ function tweetGifWithImages({levels}, url) {
   .then(({id_str}) => `https://twitter.com/BenoitMandelbot/status/${id_str}`);
 }
 
-const width = (process.env.TEST.trim()) ? 504 / 2 : 504;
+const width = TEST ? 504 / 2 : 504;
 const approxHeight = Math.floor(width * 2 / 3);
 const height = approxHeight + approxHeight % 2; // Height must be divisible by 2
 
@@ -55,17 +56,18 @@ let params = _.extend({}, find({width: 150, height: 100}), {
   height,
 });
 
-if (process.env.TEST.trim()) params.levels = 8;
+if (TEST) params.levels = 8;
 console.log(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 
-if (Math.random() < 0.7) {
+// Always return a GIF for the moment.
+if (Math.random() < 0.7 || true) {
   // Upload a GIF to gfycat with four keyframe images
   createGif(params)
   .then((outputFile) => {
     let seconds = Math.round((Date.now() - startTime) / 1000);
     console.log(`${outputFile} completed after ${seconds}s`);
 
-    if (process.env.live.trim()) {
+    if (LIVE) {
       return uploadGfycat(outputFile)
       .then((url) => {
         console.log(`Successfully uploaded to ${url}`)
@@ -90,7 +92,7 @@ if (Math.random() < 0.7) {
     let seconds = Math.round((Date.now() - startTime) / 1000);
     console.log(`${outputFile} completed after ${seconds}s`);
 
-    if (process.env.live.trim()) {
+    if (LIVE) {
       return uploadVimeo(outputFile)
       .then((url) => {
         console.log(`Successfully uploaded to ${url}`)

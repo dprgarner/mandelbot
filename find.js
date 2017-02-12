@@ -2,6 +2,8 @@ const _ = require('underscore');
 
 const constructSet = require('./mandelbrot').constructSet;
 
+const TEST = !!(process.env.TEST || '').trim();
+
 function collateDepths(set, {width, height, depth}) {
   let depthsCollation = {[null]: []};
   for (let y = 0; y < height; y++) {
@@ -219,7 +221,7 @@ function scry({width, height}) {
   let tries = 5;
   let potentials = [];
 
-  if (process.env.TEST.trim()) return {x, y, level, depth};
+  if (TEST) return {x, y, level, depth};
 
   for (let j = 0; j < tries; j++) {
     attempt++; // Logging
@@ -318,7 +320,7 @@ module.exports = function ({width, height}) {
   console.log(`Found a mandelbrot copy after ${attempt} attempts`);
 
   let params = _.extend({}, target, {
-    scale: Math.pow(2, -8 - target.level + (process.env.TEST.trim() ? 2 : 0)),
+    scale: Math.pow(2, -8 - target.level + (TEST ? 2 : 0)),
     levels: target.level,
   });
 

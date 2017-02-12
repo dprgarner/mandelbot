@@ -1,7 +1,5 @@
 const {client_id, client_secret, access_token} = require('./auth').vimeoAuth;
 
-const OUTPUT_DIR = process.env.OUTPUT_DIR || '.';
-
 const Vimeo = require('vimeo').Vimeo;
 let client = new Vimeo(client_id, client_secret, access_token);
 
