@@ -1,7 +1,7 @@
 const path = require('path');
 const winston = require('winston');
 
-const {OUTPUT_DIR, TEST} = require('./env');
+const {OUTPUT_DIR, TEST, LIVE} = require('./env');
 
 module.exports = function () {
   winston.level = (TEST) ? 'debug' : 'info';
@@ -14,4 +14,6 @@ module.exports = function () {
   });
   winston.remove(winston.transports.Console);
   winston.add(winston.transports.Console, {'timestamp': true});
+
+  winston.info(`Initialising with TEST=${TEST}, LIVE=${LIVE}...`);
 }

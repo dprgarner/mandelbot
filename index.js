@@ -49,7 +49,6 @@ function tweetGifWithImages({levels}, url) {
 }
 
 require('./initialiseLogging')();
-winston.info(`Initialising with TEST=${TEST}, LIVE=${LIVE}...`);
 
 const deletedFiles = findRemoveSync(OUTPUT_DIR, {
   age: {seconds: 3600 * 24 * 7},
