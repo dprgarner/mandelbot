@@ -85,10 +85,10 @@ exports.randomColours = function() {
   )
 
   let mode = 'normal';
-  let modeChoice = Math.random();
-  if (modeChoice < 0.8) {
+  let modeChoice = _.random(3);
+  if (modeChoice === 0) {
     mode = 'rainbow';
-  } else if (modeChoice < 0.4) {
+  } else if (modeChoice === 1) {
     mode = 'weird';
   }
 
