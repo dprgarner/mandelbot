@@ -8,6 +8,7 @@ const Color = require('color');
 const GIFEncoder = require('gif-stream/encoder');
 const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
+const winston = require('winston');
 
 function convergesWithin(depth, cRe, cIm) {
   // z -> z' = z^2 + c
@@ -189,10 +190,10 @@ exports.renderSetToFile = function(set, params, frameLocation) {
     .pipe(fs.createWriteStream(frameLocation))
     .on('finish', (err) => {
       if (err) {
-        console.error(err);
+        winston.error(err);
         reject(err);
       } else {
-        console.log(`Rendered set to ${frameLocation}`);
+        winston.debug(`Rendered set to ${frameLocation}`);
         resolve(frameLocation);
       }
     });

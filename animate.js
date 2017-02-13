@@ -13,6 +13,7 @@ const neuquant = require('neuquant');
 const PixelStream = require('pixel-stream');
 const rimraf = require('rimraf');
 const toArray = require('stream-to-array');
+const winston = require('winston');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
@@ -70,9 +71,9 @@ function generateKeyFrameImages(params) {
 
   return serial(_.map(frames, (frame, i) => () => {
     let startTime = Date.now();
-    console.log(`Constructing Mandelbrot set #${i}...`);
+    winston.debug(`Constructing Mandelbrot set #${i}...`);
     let set = constructSet(_.extend({}, {width, height}, frame));
-    console.log(`Constructed Mandelbrot set #${i} after ${Date.now() - startTime}ms`);
+    winston.debug(`Constructed Mandelbrot set #${i} after ${Date.now() - startTime}ms`);
 
     return renderSetToFile(
       set,
@@ -200,7 +201,7 @@ exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeigh
   .then((framesData) => serial(
     _.map(framesData, (frameData) => () => {
       let {frameNumber, currentKeyFrame: {path, left, top, cropWidth, cropHeight}} = frameData;
-      console.log(`Frame ${frameNumber} of ${framesData.length}...`)
+      winston.debug(`Frame ${frameNumber} of ${framesData.length}...`)
       let outputFile1 = `./frames/${frameNumber}.gif`;
       execFileSync(
         gifsicle,
@@ -261,7 +262,7 @@ exports.createGif = function(params) {
         '-o', outputFile
       ])
     );
-    console.log(`Collated gif after ${Date.now() - startTime}ms`);
+    winston.debug(`Collated gif after ${Date.now() - startTime}ms`);
     return outputFile;
   });
 };
@@ -270,7 +271,7 @@ exports.createMp4 = function(params) {
   let startTime = Date.now();
   return exports.createFrames(params)
   .then((paths) => {
-    const concatFile = './concat.txt';
+    const concatFile = `${OUTPUT_DIR}/concat.txt`;
     const fileName = md5(Date.now()).substr(0, 12);
     const outputFile = `${OUTPUT_DIR}/${fileName}.mp4`;
 
@@ -293,7 +294,7 @@ exports.createMp4 = function(params) {
       ]
     );
 
-    console.log(`Collated mp4 after ${Date.now() - startTime}ms`);
+    winston.debug(`Collated mp4 after ${Date.now() - startTime}ms`);
     return outputFile;
   });
 };

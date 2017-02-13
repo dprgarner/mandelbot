@@ -1,6 +1,8 @@
 const {client_id, client_secret, access_token} = require('./auth').vimeoAuth;
 
 const Vimeo = require('vimeo').Vimeo;
+const winston = require('winston');
+
 let client = new Vimeo(client_id, client_secret, access_token);
 
 module.exports = (fileName) => new Promise((resolve, reject) => {
@@ -24,6 +26,6 @@ module.exports = (fileName) => new Promise((resolve, reject) => {
       });
     });
   }, (uploadSize, fileSize) => {
-    console.log(Math.round((uploadSize / fileSize) * 100) + "% uploaded");
+    winston.debug(Math.round((uploadSize / fileSize) * 100) + "% uploaded");
   });
 });

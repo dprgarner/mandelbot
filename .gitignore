@@ -1,7 +1,7 @@
 *.gif
 *.mp4
+*.txt
 auth.js
-concat.txt
 frames
 node_modules
 sftp-config.json

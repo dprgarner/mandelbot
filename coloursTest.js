@@ -4,14 +4,17 @@ const find = require('./find');
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 const constructSet = require('./mandelbrot').constructSet;
 const randomColours = require('./mandelbrot').randomColours;
+const winston = require('winston');
+
+require('./initialiseLogging')();
 
 function render(set, params, fileName) {
   return renderSetToFile(set, params, fileName)
   .then((frameLocation) => {
-    console.log(`Outputted keyFrame to ${frameLocation}`);
+    winston.debug(`Outputted keyFrame to ${frameLocation}`);
   })
   .catch((err) => {
-    console.error(err);
+    winston.error(err);
     process.exit(1);
   });
 }

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const request = require('request');
 const rp = require('request-promise');
+const winston = require('winston');
 
 const gfycatAuth = require('./auth').gfycatAuth;
 
@@ -17,7 +18,7 @@ module.exports = function(filePath, title) {
   .then((body) => body.access_token)
   .then((token) => {
     const headers = {Authorization: token};
-    console.log('Token:', token);
+    winston.debug('Token:', token);
     return rp({
       uri: 'https://api.gfycat.com/v1/gfycats',
       json: true,
@@ -26,7 +27,7 @@ module.exports = function(filePath, title) {
       body: {title},
     })
     .then(({gfyname, secret}) => {
-      console.log({gfyname, secret});
+      winston.debug({gfyname, secret});
 
       return rp({
         uri: 'https://filedrop.gfycat.com',

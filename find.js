@@ -1,4 +1,5 @@
 const _ = require('underscore');
+const winston = require('winston');
 
 const constructSet = require('./mandelbrot').constructSet;
 
@@ -198,8 +199,7 @@ function scry({width, height}) {
     let params = {scale, x, y, depth, width, height, level};
 
     let set = constructSet(params);
-    // Logging
-    console.log(`    ${attempt}: Level: ${level}, Depth: ${depth}`);
+    winston.debug(`    ${attempt}: Level: ${level}, Depth: ${depth}`);
 
     let depthsCollation = collateDepths(set, {width, height, depth});
     let threshold = Math.floor(
@@ -207,7 +207,7 @@ function scry({width, height}) {
     );
 
     if (depthsCollation.maxDepth < depth / 2) {
-      console.log('Depth unnecessarily high: adjusting...') 
+      winston.debug('Depth unnecessarily high: adjusting...') 
       depthAdjust = Math.round(depthAdjust / 2);
     }
 
@@ -231,7 +231,7 @@ function scry({width, height}) {
 
     let set = constructSet(params);
     // Logging
-    console.log(`      ${attempt}: Level: ${level}, Depth: ${depth}`);
+    winston.debug(`      ${attempt}: Level: ${level}, Depth: ${depth}`);
 
     let profile = getPercentProfile(set);
     let maxProportion = getMaxProportion(profile);
@@ -241,14 +241,14 @@ function scry({width, height}) {
 
     // Stop if there are no likely candidates for a Mandelbrot copy
     if (getMaxProportion(profile) === 0) {
-      console.log('Nothing here');
+      winston.debug('Nothing here');
       level--;
       continue;
     }
 
     // Stop if it's too grainy
     if (lotsOfGrainyAreas(profile)) {
-      console.log('Too much noise - adding depth adjust');
+      winston.debug('Too much noise - adding depth adjust');
       depthAdjust += 100;
       level--;
       continue;
@@ -256,7 +256,7 @@ function scry({width, height}) {
 
     // Stop if there aren't clear areas 
     if (!lotsOfNotMandlebrotAreas(profile)) {
-      console.log('Not enough clear space');
+      winston.debug('Not enough clear space');
       level--;
       continue;
     }
@@ -264,12 +264,12 @@ function scry({width, height}) {
     // Find which sides of the image have Mandelbrot sets
     let sides = getMandelbrotSides(set);
     if (sides.length > 2) {
-      console.log('Totally surrounded');
+      winston.debug('Totally surrounded');
       level--;
       continue;
     } else if (sides.length > 0) {
       // Adjust focus point to keep the Mandelbrot in the centre.
-      console.log('Adjusting focus');
+      winston.debug('Adjusting focus');
       let pixelX = width / 2;
       let pixelY = height / 2;
 
@@ -302,7 +302,7 @@ function scry({width, height}) {
     // Zoom in some more if there's not enough Mandelbrot points.
     let proportion = totalProportion(profile);
     if (proportion < 0.05) {
-      console.log('Zooming in');
+      winston.debug('Zooming in');
       level++;
       tries++; // An extra try, to get the right zoom.
     }
@@ -317,7 +317,7 @@ module.exports = function ({width, height}) {
   while (!target) {
     target = scry({width, height});
   }
-  console.log(`Found a mandelbrot copy after ${attempt} attempts`);
+  winston.debug(`Found a mandelbrot copy after ${attempt} attempts`);
 
   let params = _.extend({}, target, {
     scale: Math.pow(2, -8 - target.level + (TEST ? 2 : 0)),
