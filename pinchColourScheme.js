@@ -2,85 +2,38 @@ const fs = require('fs');
 const path = require('path');
 
 const _ = require('underscore');
+const chroma = require('chroma-js');
+const md5 = require('md5');
 const Color = require('color');
 const JPEGDecoder = require('jpg-stream/decoder');
 const request = require('request');
 const rimraf = require('rimraf');
 const toArray = require('stream-to-array');
-const Twit = require('twit');
 const winston = require('winston');
 
-const {OUTPUT_DIR} = require('./env');
-const {twitterAuth} = require('./auth');
-const {constructSet, renderSetToFile} = require('./mandelbrot');
-var client = new Twit(twitterAuth);
-
+const {OUTPUT_DIR, LIVE} = require('./env');
 const latestReplyFile = path.join(OUTPUT_DIR, 'latestReply.txt');
-const cutoffTime = fs.existsSync(latestReplyFile) ? parseInt(
-  fs.readFileSync(latestReplyFile, 'utf8'), 10
-) : -1;
+const {constructSet, renderSetToFile} = require('./mandelbrot');
+const {getPopularColourSchemes, replyWithImage} = require('./twitter');
 
-function getPopularColourScheme() {
-  // Find the most recent tweet by @colourschemez with the most replies which
-  // is after a previous tweet time.
-  return new Promise((resolve, reject) => {
-    client.get(
-      'search/tweets',
-      {q: 'to:colorschemez', count: 15, result_type: 'recent'},
-      (err, data) => {
-        if (err) return reject(err);
-        // Object where the key is the status ID, and the value is the number
-        // of replies to this status
-        const tweetsToReplies = _.chain(data.statuses)
-        .groupBy('in_reply_to_status_id_str')
-        .mapObject(v => v.length)
-        .value();
-
-        client.get('statuses/lookup', {id: _.keys(tweetsToReplies)}, (err, data) => {
-          if (err) return reject(err);
-          data.sort((t1, t2) => {
-            let lengthDifference = tweetsToReplies[t2.id_str] - tweetsToReplies[t1.id_str];
-            if (lengthDifference) return lengthDifference;
-            return Date.parse(t2.created_at) - Date.parse(t1.created_at);
-          });
-          const tweets = _.filter(_.map(data, t => ({
-            id: t.id_str,
-            date: Date.parse(t.created_at),
-            url: t.entities.media[0].media_url,
-          })), t => {
-            return t.date > cutoffTime;
-          });
-          winston.debug(tweets);
-          resolve(tweets[0]);
-        });
-      }
-    );
-  })
-}
-
-// Promise.resolve({
-//   id: '829766226901479424',
-//   date: 1486972659000,
-//   url: 'http://pbs.twimg.com/media/C4Pr_GFUoAAX0Lf.jpg'
-// })
-
-function getColours(url) {
+function getColours({id, url}) {
+  const fileName = `./${id}.jpg`;
   return new Promise((resolve, reject) => {
     request(url)
-    .pipe(fs.createWriteStream('./coloursSlide.jpg'))
+    .pipe(fs.createWriteStream(fileName))
     .on('finish', err => {
       if (err) return reject(err);
-      resolve('./coloursSlide.jpg');
+      resolve(fileName);
     })
   })
   .then(() => {
     return toArray(
-      fs.createReadStream('./coloursSlide.jpg')
+      fs.createReadStream(fileName)
       .pipe(new JPEGDecoder)
     );
   })
   .then(data => {
-    rimraf.sync('./coloursSlide.jpg');
+    rimraf.sync(fileName);
     coloursCount = {};
     for (let i = 0; i < data.length; i++) {
       for (let j = 0; j < data[0].length; j+=3) {
@@ -99,12 +52,8 @@ function getColours(url) {
     return colours;
   });
 }
-// 'https://pbs.twimg.com/media/C4pb79LVUAEubPe.jpg'
 
-getColours('http://pbs.twimg.com/media/C4p3ZlOVcAAom4n.jpg')
-.then(colours => {
-  console.log(colours);
-
+function renderFromColours(colours) {
   let params = {
     width: 512,
     height: 512,
@@ -121,25 +70,57 @@ getColours('http://pbs.twimg.com/media/C4p3ZlOVcAAom4n.jpg')
   };
   console.log(params.colours);
   let set = constructSet(params);
-  return renderSetToFile(set, params, './colorschemezmb.gif')
-})
-.then(f => {
-  console.log('ok')
-  console.log(f);
-})
-.catch(err => {
-  winston.error(err);
-});
+  const fileName = md5(Date.now()).substr(0, 12);
+  const outputFile = `${OUTPUT_DIR}/cs_${fileName}.gif`;
+  return renderSetToFile(set, params, outputFile);
+}
 
-// getPopularColourScheme()
-// .then(tweet => {
-//   if (!tweet) {
-//     winston.info('No eligible tweets');
-//     return;
-//   }
-//   fs.writeFileSync(latestReplyFile, tweet.date);
-//   console.log(tweet);
-// })
-// .catch(err => {
-//   winston.error(err);
-// });
+module.exports = function pinchColourScheme() {
+  winston.info('Attempting to tweet at a colour scheme');
+
+  return getPopularColourSchemes()
+  .then(tweets => {
+    winston.info(`Found ${tweets.length} potential colour scheme tweets`);
+    console.log(tweets);
+    function getContrastingColours(subTweets) {
+      if (!subTweets.length) return false;
+      return getColours(subTweets[0])
+      .then((colours) => {
+        // test whether contrast is good
+        const contrast1 = chroma.contrast(colours[2].hex(), colours[0].hex()) / 3;
+        const contrast2 = chroma.contrast(colours[1].hex(), colours[2].hex()) / 2;
+
+        if (contrast1 > 1 && contrast2 > 1) {
+          winston.info(`Accepted contrasts of tweet ${subTweets[0].id}`);
+          return _.extend({}, subTweets[0], {colours});
+        } else {
+          winston.info(`Rejected contrasts of tweet ${subTweets[0].id}`);
+          return getContrastingColours(_.tail(subTweets));
+        }
+      });
+    }
+
+    return getContrastingColours(tweets);
+  })
+  .then(tweet => {
+    if (!tweet) {
+      winston.info('No eligible tweets');
+      return;
+    }
+
+    fs.writeFileSync(latestReplyFile, Date.now());
+    winston.debug(tweet);
+
+    let status = '@colorschemez ';
+    status += 'I think this makes a good colour scheme for a Mandelbrot set.';
+
+    return renderFromColours(tweet.colours)
+    .then((f) => {
+      return (LIVE ? replyWithImage(f, status, tweet.id) : null);
+    })
+  }) 
+  .then(x => {
+    winston.info(`Tweeted @colourschemez: ${x}`);
+    return x;
+  });
+}

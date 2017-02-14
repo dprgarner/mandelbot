@@ -14,14 +14,21 @@ const uploadVimeo = require('./uploadVimeo');
 const uploadGfycat = require('./uploadGfycat');
 const {uploadMedia, updateStatus, tweetWithImages} = require('./twitter');
 const {OUTPUT_DIR, LIVE, TEST} = require('./env');
+const pinchColourScheme = require('./pinchColourScheme');
 
 function waitUntilDueTime() {
-  return new Promise((resolve, reject) => {
+  // Possibly tweet at another bot while waiting for a tweet window.
+  return Promise.resolve(true)
+  .then(() => {
+    if (Math.random() > 0.25) return;
+    return pinchColourScheme()
+  })
+  .then(() => new Promise((resolve, reject) => {
     // Wait until the next three-hour point.
     let tweetInterval = 1000 * 60 * 60 * 2;
     let msUntilTime = tweetInterval - (Date.now() % tweetInterval);
     setTimeout(resolve, msUntilTime);
-  });
+  }));
 }
 
 require('./initialiseLogging')();

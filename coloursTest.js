@@ -36,7 +36,7 @@ serial(_.map(_.range(20), i => () => {
   let params = _.extend({}, foundParams, {
     width,
     height,
-    colours: randomColours(),
+    colours: _.extend(randomColours(), {mode: 'normal'}),
   });
   let set = constructSet(params);
   return render(set, params, `./ct/${(i < 10) ? '0' + i : i}B.gif`)

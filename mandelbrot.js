@@ -82,7 +82,7 @@ exports.randomColours = function() {
     }
   } while (
     chroma.contrast(denseColour.hex(), sparseColour.hex()) < 4.5 ||
-    chroma.contrast(mandelbrotColour.hex(), sparseColour.hex()) < 2
+    chroma.contrast(mandelbrotColour.hex(), denseColour.hex()) < 4.5
   )
 
   let mode = 'normal';
@@ -136,10 +136,13 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       }).rgb().round().array();
     } else if (colours.mode === 'weird') {
       colourAtDepth[j] = _.times(3, () => Math.floor(Math.random() * 256));
-    } else {
-      s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+    } else if (colours.mode === 'normal') {
+      s = (j - minIterations) / (maxIterations - minIterations);
+      s = Math.pow(s, 0.25);
+      // s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+      // s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
       colourAtDepth[j] = _.times(3, i => (
-        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i]) % 256
+        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i])
       ));
       // Oversaturate the colours somewhat
       colourAtDepth[j] = Color(colourAtDepth[j]).saturate(0.75).rgb().array()
