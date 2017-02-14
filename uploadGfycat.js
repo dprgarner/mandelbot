@@ -1,12 +1,8 @@
 const fs = require('fs');
-const request = require('request');
 const rp = require('request-promise');
 const winston = require('winston');
 
 const gfycatAuth = require('./auth').gfycatAuth;
-
-// http://giant.gfycat.com/TightTediousBanteng.gif
-// https://giant.gfycat.com/UnlawfulSeveralFluke.gif
 
 module.exports = function(filePath, title) {
   return rp({

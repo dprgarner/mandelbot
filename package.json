@@ -21,6 +21,7 @@
     "find-remove": "^1.0.0",
     "gif-stream": "^1.1.0",
     "image-min": "^0.3.2",
+    "jpg-stream": "^1.1.1",
     "md5": "^2.2.1",
     "neuquant": "^1.0.2",
     "nodemon": "^1.10.2",
