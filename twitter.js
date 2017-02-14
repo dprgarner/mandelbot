@@ -24,5 +24,25 @@ exports.updateStatus = function(params) {
       winston.debug('Updated status');
       resolve(data);
     });
-  });
+  })
+  .then(({id_str}) => `https://twitter.com/BenoitMandelbot/status/${id_str}`);
 };
+
+function uploadOptimisedMedia(filePath) {
+  let stats = fs.statSync(filePath)
+  if (stats.size > 2.5 * 1024 * 1024) {
+    execFileSync(gifsicle, [
+      '-b', filePath,
+      '--colors', '64',
+      '--dither',
+    ]);
+  }
+  return exports.uploadMedia(filePath);
+}
+
+exports.tweetWithImages = function(stillImages, status) {
+  return Promise.all(_.map(stillImages, uploadOptimisedMedia))
+  .then((media_ids) => {
+    return exports.updateStatus({ status, media_ids })
+  });
+}

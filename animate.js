@@ -17,7 +17,6 @@ const winston = require('winston');
 
 const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
-const randomColours = require('./mandelbrot').randomColours;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 const {OUTPUT_DIR, TEST, DOCKER} = require('./env');
@@ -136,12 +135,13 @@ function padWithZeroes(i) {
   return '' + i;
 }
 
-exports.createFrames = function({x, y, levels, width: gifWidth, height: gifHeight}) {
+exports.createFrames = function({
+  x, y, levels, colours, width: gifWidth, height: gifHeight
+}) {
   let startTime = Date.now();
 
   const width = 4 * gifWidth;
   const height = 4 * gifHeight;
-  const colours = randomColours();
 
   const params = {x, y, levels, width, height, colours};
 

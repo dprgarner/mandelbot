@@ -120,7 +120,14 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   const randomRainbowFactor = Math.random() * 50 + 2 * Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
-    if (colours.mode === 'rainbow') {
+    if (colours.mode === 'sparse') {  
+      s = Math.min(1, Math.pow(
+        (j - minIterations) / (maxIterations / 2 - minIterations), 0.5
+      ));
+      colourAtDepth[j] = _.times(3, i => (
+        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i])
+      ));
+    } else if (colours.mode === 'rainbow') {
       s = Math.round(64 * Math.log(j));
       colourAtDepth[j] = Color({
         h: Math.round(randomRainbowFactor * (s + 1)) % 256,
@@ -168,7 +175,10 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       let idx = (y * width + x) * 3;
       if (!iterations) {
         appendColour(idx, colours.mandelbrot);
-      } else if (colours.mode !== 'normal' && isIsolated(y, x)) {
+      } else if (
+        (colours.mode === 'weird' || colours.mode === 'rainbow')
+        && isIsolated(y, x)
+      ) {
         appendColour(idx, deepColour);
       } else {
         appendColour(idx, colourAtDepth[iterations]);

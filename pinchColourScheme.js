@@ -12,7 +12,7 @@ const winston = require('winston');
 
 const {OUTPUT_DIR} = require('./env');
 const {twitterAuth} = require('./auth');
-
+const {constructSet, renderSetToFile} = require('./mandelbrot');
 var client = new Twit(twitterAuth);
 
 const latestReplyFile = path.join(OUTPUT_DIR, 'latestReply.txt');
@@ -58,6 +58,12 @@ function getPopularColourScheme() {
   })
 }
 
+// Promise.resolve({
+//   id: '829766226901479424',
+//   date: 1486972659000,
+//   url: 'http://pbs.twimg.com/media/C4Pr_GFUoAAX0Lf.jpg'
+// })
+
 function getColours(url) {
   return new Promise((resolve, reject) => {
     request(url)
@@ -93,22 +99,37 @@ function getColours(url) {
     return colours;
   });
 }
+// 'https://pbs.twimg.com/media/C4pb79LVUAEubPe.jpg'
 
-getColours('http://pbs.twimg.com/media/C4Pr_GFUoAAX0Lf.jpg')
+getColours('http://pbs.twimg.com/media/C4p3ZlOVcAAom4n.jpg')
 .then(colours => {
-  console.log('ok');
   console.log(colours);
+
+  let params = {
+    width: 512,
+    height: 512,
+    x: -0.5,
+    y: 0,
+    scale: Math.pow(2, -7),
+    depth: 200,
+    colours: {
+      sparse: colours[0].rgb().array(),
+      dense: colours[2].rgb().array(),
+      mandelbrot: colours[1].rgb().array(),
+      mode: 'sparse',
+    },
+  };
+  console.log(params.colours);
+  let set = constructSet(params);
+  return renderSetToFile(set, params, './colorschemezmb.gif')
+})
+.then(f => {
+  console.log('ok')
+  console.log(f);
 })
 .catch(err => {
   winston.error(err);
 });
-
-
-// Promise.resolve({
-//   id: '829766226901479424',
-//   date: 1486972659000,
-//   url: 'http://pbs.twimg.com/media/C4Pr_GFUoAAX0Lf.jpg'
-// })
 
 // getPopularColourScheme()
 // .then(tweet => {
