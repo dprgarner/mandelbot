@@ -20,7 +20,7 @@ const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 const {OUTPUT_DIR, TEST, DOCKER} = require('./env');
-const ffmpeg = DOCKER ? './node_modules/.bin/ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
+const ffmpeg = DOCKER ? 'ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
 const gifsicle = exports.gifsicle = DOCKER ? '/usr/bin/gifsicle' : require('gifsicle');
 
 // Input: list of promise *generators*.
