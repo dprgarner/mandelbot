@@ -3,6 +3,7 @@ const winston = require('winston');
 
 const createMp4 = require('./animate').createMp4;
 const find = require('./find');
+const {randomColours} = require('./mandelbrot');
 const {TEST} = require('./env');
 
 const width = TEST ? 504 / 2 : 504;
@@ -15,6 +16,7 @@ let startTime = Date.now();
 let params = _.extend({}, find({width: 150, height: 100}), {
   width,
   height,
+  colours: _.extend(randomColours(), {mode: 'normal'}),
 });
 
 if (TEST) params.levels = 8;

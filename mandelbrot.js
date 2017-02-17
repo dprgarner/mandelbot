@@ -82,7 +82,7 @@ exports.randomColours = function() {
     }
   } while (
     chroma.contrast(denseColour.hex(), sparseColour.hex()) < 4.5 ||
-    chroma.contrast(mandelbrotColour.hex(), sparseColour.hex()) < 2
+    chroma.contrast(mandelbrotColour.hex(), denseColour.hex()) < 4.5
   )
 
   let mode = 'normal';
@@ -120,7 +120,14 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   const randomRainbowFactor = Math.random() * 50 + 2 * Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
-    if (colours.mode === 'rainbow') {
+    if (colours.mode === 'sparse') {  
+      s = Math.min(1, Math.pow(
+        (j - minIterations) / (maxIterations / 2 - minIterations), 0.5
+      ));
+      colourAtDepth[j] = _.times(3, i => (
+        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i])
+      ));
+    } else if (colours.mode === 'rainbow') {
       s = Math.round(64 * Math.log(j));
       colourAtDepth[j] = Color({
         h: Math.round(randomRainbowFactor * (s + 1)) % 256,
@@ -129,10 +136,13 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       }).rgb().round().array();
     } else if (colours.mode === 'weird') {
       colourAtDepth[j] = _.times(3, () => Math.floor(Math.random() * 256));
-    } else {
-      s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+    } else if (colours.mode === 'normal') {
+      s = (j - minIterations) / (maxIterations - minIterations);
+      s = Math.pow(s, 0.25);
+      // s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
+      // s = Math.max(0, Math.min(1, f * Math.log(1.5 * (j - minIterations))));
       colourAtDepth[j] = _.times(3, i => (
-        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i]) % 256
+        Math.floor(s * colours.dense[i] + (1 - s) * colours.sparse[i])
       ));
       // Oversaturate the colours somewhat
       colourAtDepth[j] = Color(colourAtDepth[j]).saturate(0.75).rgb().array()
@@ -168,7 +178,10 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
       let idx = (y * width + x) * 3;
       if (!iterations) {
         appendColour(idx, colours.mandelbrot);
-      } else if (colours.mode !== 'normal' && isIsolated(y, x)) {
+      } else if (
+        (colours.mode === 'weird' || colours.mode === 'rainbow')
+        && isIsolated(y, x)
+      ) {
         appendColour(idx, deepColour);
       } else {
         appendColour(idx, colourAtDepth[iterations]);
