@@ -57,7 +57,7 @@ winston.debug(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s
 winston.info(JSON.stringify(params, null, 2));
 
 // Always return a GIF for the moment.
-if (Math.random() < 0.7 || true) {
+if (Math.random() < 0.667) {
   // Upload a GIF to gfycat with four keyframe images
   createGif(params)
   .then((outputFile) => {
@@ -88,7 +88,7 @@ if (Math.random() < 0.7 || true) {
     winston.error(err);
     winston.error(`Errored after ${Date.now() - startTime}ms`);
     process.exit(1);
-  }); 
+  });
 } else {
   // Upload a vimeo video
   createMp4(params)
