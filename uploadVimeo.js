@@ -11,8 +11,7 @@ module.exports = (fileName) => new Promise((resolve, reject) => {
 
     client.request(headers.location, function (err, body) {
       if (err) return reject(err);
-      let strippedFilename = fileName.substr(0, fileName.length - 4);
-      if (strippedFilename[0] === '.') strippedFilename = strippedFilename.substr(2);
+      let strippedFilename = fileName.match(/([0-9a-f]+)\.mp4/)[1];
       client.request({
         method: 'PATCH',
         path: body.uri,

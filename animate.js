@@ -271,7 +271,7 @@ exports.createMp4 = function(params) {
   let startTime = Date.now();
   return exports.createFrames(params)
   .then((paths) => {
-    const concatFile = `${OUTPUT_DIR}/concat.txt`;
+    const concatFile = `./concat.txt`;
     const fileName = md5(Date.now()).substr(0, 12);
     const outputFile = `${OUTPUT_DIR}/${fileName}.mp4`;
 
@@ -289,7 +289,7 @@ exports.createMp4 = function(params) {
         '-i', concatFile,
         '-vf', 'format=yuv420p',
         '-preset', 'veryslow',
-        '-crf', '0',
+        '-crf', '1',
         outputFile,
       ]
     );
