@@ -56,8 +56,8 @@ if (TEST) params.levels = 8;
 winston.debug(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s`);
 winston.info(JSON.stringify(params, null, 2));
 
-// Always return a GIF for the moment.
-if (Math.random() < 0.667) {
+// Usually return a GIF, so we don't hit Vimeo's upload limit
+if (Math.random() < 0.75) {
   // Upload a GIF to gfycat with four keyframe images
   createGif(params)
   .then((outputFile) => {
