@@ -1,11 +1,17 @@
 version: "3.6"
 
 services:
+  ffmpeg:
+    build: ./Dockerfile.ffmpeg
+    image: ffmpeg
+
   bot:
     build:
       context: .
       args:
         base_image: 'node:10.6.0-slim'
+    depends_on:
+      - ffmpeg
     environment:
       OUTPUT_DIR: /data
     volumes:
