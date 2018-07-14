@@ -1,7 +1,5 @@
 *.gif
 *.mp4
 *.txt
-auth.js
 frames
 node_modules
-sftp-config.json

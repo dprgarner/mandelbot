@@ -3,7 +3,7 @@ const winston = require('winston');
 
 const constructSet = require('./mandelbrot').constructSet;
 
-const TEST = !!(process.env.TEST || '').trim();
+const {TEST} = require('./env');
 
 function collateDepths(set, {width, height, depth}) {
   let depthsCollation = {[null]: []};
@@ -25,7 +25,7 @@ function toComplexCoords({pixelX, pixelY}, {x, y, width, height, scale}) {
   // Convert back to complex coordinates
   let newX = x + (pixelX - width / 2) * scale;
   let newY = y - (pixelY - height / 2) * scale;
-  return {x: newX, y: newY}; 
+  return {x: newX, y: newY};
 }
 
 function getRandomNearMandelbrotPoint(
@@ -142,14 +142,14 @@ function getMaxProportionArea(profile) {
 }
 
 function lotsOfGrainyAreas(profile) {
-  let proportion = reduceProfile(profile, 0, (acc, p) => 
+  let proportion = reduceProfile(profile, 0, (acc, p) =>
     acc += (p > 0 && p < 0.5) ? 1 : 0
   );
   return proportion / (profile.length * profile[0].length) > 0.25;
 }
 
 function lotsOfNotMandlebrotAreas(profile) {
-  let proportion = reduceProfile(profile, 0, (acc, p) => 
+  let proportion = reduceProfile(profile, 0, (acc, p) =>
     acc += (p === 0) ? 1 : 0
   );
   return proportion / (profile.length * profile[0].length) > 0.25;
@@ -207,7 +207,7 @@ function scry({width, height}) {
     );
 
     if (depthsCollation.maxDepth < depth / 2) {
-      winston.debug('Depth unnecessarily high: adjusting...') 
+      winston.debug('Depth unnecessarily high: adjusting...')
       depthAdjust = Math.round(depthAdjust / 2);
     }
 
@@ -254,7 +254,7 @@ function scry({width, height}) {
       continue;
     }
 
-    // Stop if there aren't clear areas 
+    // Stop if there aren't clear areas
     if (!lotsOfNotMandlebrotAreas(profile)) {
       winston.debug('Not enough clear space');
       level--;
