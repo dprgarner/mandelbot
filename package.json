@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "description": "Generate and tweet Mandelbrot gifs and videos",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node -r dotenv/config src/index.js"
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
     "color": "^1.0.3",
     "color-scheme": "0.0.5",
     "combined-stream": "^1.0.5",
-    "ffmpeg-binaries": "^3.2.2-3",
+    "dotenv": "^6.0.0",
     "find-remove": "^1.0.0",
     "gif-stream": "^1.1.0",
     "image-min": "^0.3.2",
