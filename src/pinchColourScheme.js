@@ -118,7 +118,7 @@ module.exports = function pinchColourScheme() {
     .then((f) => {
       return (LIVE ? replyWithImage(f, status, tweet.id) : null);
     })
-  }) 
+  })
   .then(x => {
     winston.info(`Tweeted @colourschemez: ${x}`);
     return x;

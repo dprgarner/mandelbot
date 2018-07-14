@@ -6,15 +6,18 @@ const _ = require('underscore');
 const Twit = require('twit');
 const winston = require('winston');
 
-const {twitterAuth} = require('./auth');
-
 const {OUTPUT_DIR} = require('./env');
 const latestReplyFile = path.join(OUTPUT_DIR, 'latestReply.txt');
 const cutoffTime = fs.existsSync(latestReplyFile) ? parseInt(
   fs.readFileSync(latestReplyFile, 'utf8'), 10
 ) : -1;
 
-const client = new Twit(twitterAuth);
+const client = new Twit({
+  consumer_key: process.env.TWITTER_CONSUMER_KEY,
+  consumer_secret: process.env.TWITTER_CONSUMER_SECRET,
+  access_token: process.env.TWITTER_ACCESS_TOKEN,
+  access_token_secret: process.env.TWITTER_ACCESS_TOKEN_SECRET,
+});
 
 exports.uploadMedia = function(filePath) {
   return new Promise((resolve, reject) => {

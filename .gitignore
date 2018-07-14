@@ -1,5 +1,7 @@
 *.gif
 *.mp4
 *.txt
+.env
+.secret
 frames
 node_modules

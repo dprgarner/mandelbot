@@ -120,7 +120,7 @@ exports.drawMandelbrot = function(mandelbrot, depth, colours) {
   const randomRainbowFactor = Math.random() * 50 + 2 * Math.random();
   for (let j = 0; j <= maxIterations; j++) {
     let s;
-    if (colours.mode === 'sparse') {  
+    if (colours.mode === 'sparse') {
       s = Math.min(1, Math.pow(
         (j - minIterations) / (maxIterations / 2 - minIterations), 0.5
       ));
