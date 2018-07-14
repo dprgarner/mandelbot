@@ -1,7 +1,7 @@
 const _ = require('underscore');
 const winston = require('winston');
 
-const createMp4 = require('./animate').createMp4;
+const {createMp4} = require('./animate');
 const find = require('./find');
 const {randomColours} = require('./mandelbrot');
 const {TEST} = require('./env');

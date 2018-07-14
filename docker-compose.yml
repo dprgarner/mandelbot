@@ -2,7 +2,9 @@ version: "3.6"
 
 services:
   ffmpeg:
-    build: ./Dockerfile.ffmpeg
+    build:
+      context: .
+      dockerfile: ./Dockerfile.ffmpeg
     image: ffmpeg
 
   bot:
@@ -10,9 +12,11 @@ services:
       context: .
       args:
         base_image: 'node:10.6.0-slim'
+    command: ["yarn", "video-test"]
     depends_on:
       - ffmpeg
     environment:
       OUTPUT_DIR: /data
+      TEST: 1
     volumes:
       - /data

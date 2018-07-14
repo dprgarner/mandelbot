@@ -3,7 +3,8 @@
   "version": "2.0.0",
   "description": "Generate and tweet Mandelbrot gifs and videos",
   "scripts": {
-    "start": "node -r dotenv/config src/index.js"
+    "start": "node -r dotenv/config src/index.js",
+    "video-test": "node -r dotenv/config src/videoTest.js"
   },
   "repository": {
     "type": "git",

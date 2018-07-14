@@ -20,7 +20,7 @@ const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
 const {OUTPUT_DIR, TEST} = require('./env');
-const ffmpeg = 'ffmpeg';
+const ffmpeg = '/usr/local/bin/ffmpeg';
 const gifsicle = exports.gifsicle = '/usr/bin/gifsicle';
 
 // Input: list of promise *generators*.
@@ -284,7 +284,7 @@ exports.createMp4 = function(params) {
       ffmpeg,
       [
         '-safe', '0',
-        '-y',
+          '-y',
         '-f', 'concat',
         '-i', concatFile,
         '-vf', 'format=yuv420p',
