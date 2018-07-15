@@ -12,7 +12,7 @@ services:
       context: .
       args:
         base_image: 'node:10.6.0-slim'
-    command: ["yarn", "video-test"]
+    command: ["/bin/ffmpeg", "-version"]
     depends_on:
       - ffmpeg
     environment:

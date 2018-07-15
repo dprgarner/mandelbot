@@ -1,3 +1,15 @@
-FROM jrottenberg/ffmpeg:alpine
+FROM jrottenberg/ffmpeg:3.4-alpine
 
-CMD ["/usr/bin/ffmpeg", "-version"]
+# Hack taken from https://medium.com/@Gnaphron/minimalist-multi-stage-
+# container-5a62e08b491d
+# Copy /tmp/fakeroot to wherever, and run ${prefix}/bin/ffmpeg
+
+RUN \
+  apk add binutils && \
+  mkdir -p /tmp/fakeroot/lib  && \
+  cp $(ldd /usr/local/bin/ffmpeg | grep -o '/.\+\.so[^ ]*' | sort | uniq) /tmp/fakeroot/lib && \
+  for lib in /tmp/fakeroot/lib/*; do strip --strip-all $lib; done && \
+  cp -r /usr/local/bin /tmp/fakeroot/bin/ && \
+  cp -r /usr/local/share/ffmpeg /tmp/fakeroot/share/
+
+CMD ["/tmp/fakeroot/bin/ffmpeg", "-version"]
