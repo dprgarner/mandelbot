@@ -13,21 +13,18 @@ const randomColours = require('./mandelbrot').randomColours;
 const uploadVimeo = require('./uploadVimeo');
 const uploadGfycat = require('./uploadGfycat');
 const {uploadMedia, updateStatus, tweetWithImages} = require('./twitter');
-const {OUTPUT_DIR, LIVE, TEST} = require('./env');
+const {OUTPUT_DIR, LIVE, TEST, ALLOW_VIDEO, INSTANT} = require('./env');
 const pinchColourScheme = require('./pinchColourScheme');
 
 function waitUntilDueTime() {
   // Possibly tweet at another bot while waiting for a tweet window.
   return Promise.resolve(true)
-  .then(() => {
-    if (Math.random() > 0.25) return;
-    return pinchColourScheme()
-  })
+  .then(() => (Math.random() < 0.25) ? pinchColourScheme() : true)
   .then(() => new Promise((resolve, reject) => {
     // Wait until the next three-hour point.
     let tweetInterval = 1000 * 60 * 60 * 2;
     let msUntilTime = tweetInterval - (Date.now() % tweetInterval);
-    setTimeout(resolve, msUntilTime);
+    setTimeout(resolve, INSTANT ? 0 : msUntilTime);
   }));
 }
 
@@ -57,7 +54,34 @@ winston.debug(`Found point after ${Math.round((Date.now() - startTime) / 1000)}s
 winston.info(JSON.stringify(params, null, 2));
 
 // Usually return a GIF, so we don't hit Vimeo's upload limit
-if (Math.random() < 0.75) {
+if (Math.random() < 0.25 && ALLOW_VIDEO) {
+  // Upload a vimeo video
+  createMp4(params)
+  .then((outputFile) => {
+    let seconds = Math.round((Date.now() - startTime) / 1000);
+    winston.info(`${outputFile} completed after ${seconds}s`);
+
+    if (LIVE) {
+      return uploadVimeo(outputFile)
+      .then((url) => {
+        winston.info(
+          `Successfully uploaded video to ${url}. Waiting until next opportunity to tweet`
+        );
+        return waitUntilDueTime()
+        .then(() => updateStatus({status: url}));
+      })
+      .then((tweetUrl) => {
+        winston.info(`Tweeted: ${tweetUrl}`);
+        process.exit(0);
+      });
+    }
+  })
+  .catch((err) => {
+    winston.error(err);
+    winston.error(`Errored after ${Date.now() - startTime}ms`);
+    process.exit(1);
+  });
+} else {
   // Upload a GIF to gfycat with four keyframe images
   createGif(params)
   .then((outputFile) => {
@@ -77,33 +101,6 @@ if (Math.random() < 0.75) {
 
         return waitUntilDueTime()
         .then(() => tweetWithImages(stillImages, status));
-      })
-      .then((tweetUrl) => {
-        winston.info(`Tweeted: ${tweetUrl}`);
-        process.exit(0);
-      });
-    }
-  })
-  .catch((err) => {
-    winston.error(err);
-    winston.error(`Errored after ${Date.now() - startTime}ms`);
-    process.exit(1);
-  });
-} else {
-  // Upload a vimeo video
-  createMp4(params)
-  .then((outputFile) => {
-    let seconds = Math.round((Date.now() - startTime) / 1000);
-    winston.info(`${outputFile} completed after ${seconds}s`);
-
-    if (LIVE) {
-      return uploadVimeo(outputFile)
-      .then((url) => {
-        winston.info(
-          `Successfully uploaded video to ${url}. Waiting until next opportunity to tweet`
-        );
-        return waitUntilDueTime()
-        .then(() => updateStatus({status: url}));
       })
       .then((tweetUrl) => {
         winston.info(`Tweeted: ${tweetUrl}`);

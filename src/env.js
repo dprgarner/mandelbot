@@ -13,4 +13,6 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 exports.TEST = !!(process.env.TEST || '').trim();
 exports.LIVE = !!(process.env.LIVE || '').trim();
+exports.INSTANT = !!(process.env.INSTANT || '').trim();
+exports.ALLOW_VIDEO = !!(process.env.ALLOW_VIDEO || '').trim();
 exports.OUTPUT_DIR = OUTPUT_DIR;

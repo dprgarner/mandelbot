@@ -1,7 +1,6 @@
-*.gif
-*.mp4
-*.txt
 .env
 .secret
+concat.txt
+data
 frames
 node_modules

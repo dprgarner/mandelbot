@@ -6,17 +6,33 @@ services:
       context: .
       dockerfile: ./Dockerfile.ffmpeg
     image: ffmpeg
-
-  bot:
-    build:
-      context: .
-      args:
-        base_image: 'node:10.6.0-slim'
-    command: ["/bin/ffmpeg", "-version"]
-    depends_on:
-      - ffmpeg
-    environment:
-      OUTPUT_DIR: /data
-      TEST: 1
+    command: [
+      "/bin/ffmpeg",
+      '-safe', '0',
+        '-y',
+      '-f', 'concat',
+      '-i', './concat.txt',
+      '-vf',
+      'format=yuv420p',
+      '-tune', 'animation',
+      '-preset', 'veryslow',
+      '-crf', '1',
+      'aaa.mp4',
+    ]
     volumes:
-      - /data
+      - .:/???
+
+  # bot:
+  #   build:
+  #     context: .
+  #     args:
+  #       base_image: 'node:10.6.0-slim'
+  #   command: ["yarn", "video-test"]
+  #   depends_on:
+  #     - ffmpeg
+  #   environment:
+  #     OUTPUT_DIR: /data
+  #     INSTANT: 1
+  #     # LIVE: 1
+  #   volumes:
+  #     - /data
