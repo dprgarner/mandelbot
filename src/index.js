@@ -15,6 +15,7 @@ const uploadGfycat = require('./uploadGfycat');
 const {uploadMedia, updateStatus, tweetWithImages} = require('./twitter');
 const {OUTPUT_DIR, LIVE, TEST, ALLOW_VIDEO, INSTANT} = require('./env');
 const pinchColourScheme = require('./pinchColourScheme');
+const convertGifsToPng = require('./convertGifsToPng');
 
 function waitUntilDueTime() {
   // Possibly tweet at another bot while waiting for a tweet window.
@@ -99,8 +100,11 @@ if (Math.random() < 0.25 && ALLOW_VIDEO) {
         ));
         const status = `High-resolution GIF here: ${url}`
 
-        return waitUntilDueTime()
-        .then(() => tweetWithImages(stillImages, status));
+        return convertGifsToPng(stillImages)
+        .then((pngImages) => (
+          waitUntilDueTime()
+          .then(() => tweetWithImages(pngImages, status))
+        ))
       })
       .then((tweetUrl) => {
         winston.info(`Tweeted: ${tweetUrl}`);

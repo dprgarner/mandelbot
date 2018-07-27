@@ -1,9 +1,9 @@
 version: "3.6"
 
 services:
-  ffmpeg:
-    build: ./Dockerfile.ffmpeg.arm
-    image: ffmpeg
+  # ffmpeg:
+  #   build: ./Dockerfile.ffmpeg.arm
+  #   image: ffmpeg
 
   bot:
     build:
