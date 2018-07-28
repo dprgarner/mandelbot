@@ -42,7 +42,7 @@ exports.updateStatus = function(params) {
 
 function uploadOptimisedMedia(filePath) {
   let stats = fs.statSync(filePath)
-  if (stats.size > 2.5 * 1024 * 1024) {
+  if (filePath.match('.gif') && stats.size > 2.5 * 1024 * 1024) {
     execFileSync(gifsicle, [
       '-b', filePath,
       '--colors', '64',
