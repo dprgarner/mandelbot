@@ -18,7 +18,6 @@ module.exports = function(filePath, title) {
   .then((body) => body.access_token)
   .then((token) => {
     const headers = {Authorization: token};
-    winston.debug('Token:', token);
     return rp({
       uri: 'https://api.gfycat.com/v1/gfycats',
       json: true,

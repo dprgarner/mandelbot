@@ -1,4 +1,3 @@
-const fs = require('fs');
 const Jimp = require('jimp');
 
 module.exports = (gifs) => Promise.all(gifs.map(

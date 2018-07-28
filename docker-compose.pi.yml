@@ -1,6 +1,7 @@
 version: "3.6"
 
 services:
+  # TODO find somewhere to host videos, and fix.
   # ffmpeg:
   #   build: ./Dockerfile.ffmpeg.arm
   #   image: ffmpeg
@@ -10,4 +11,4 @@ services:
       args:
         base_image: arm32v7/node:10.6.0-slim
     environment:
-      # LIVE: '1'
+      LIVE: 1
