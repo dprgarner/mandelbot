@@ -5,6 +5,7 @@ const _ = require('underscore');
 const chroma = require('chroma-js');
 const md5 = require('md5');
 const Color = require('color');
+const convertGifsToPng = require('./convertGifsToPng');
 const JPEGDecoder = require('jpg-stream/decoder');
 const request = require('request');
 const rimraf = require('rimraf');
@@ -115,10 +116,11 @@ module.exports = function pinchColourScheme() {
     status += 'I think this makes a good colour scheme for a Mandelbrot set.';
 
     return renderFromColours(tweet.colours)
-    .then((f) => {
+    .then(f => convertGifsToPng([f]))
+    .then(([f]) => {
       return (LIVE ? replyWithImage(f, status, tweet.id) : null);
     })
-  }) 
+  })
   .then(x => {
     winston.info(`Tweeted @colourschemez: ${x}`);
     return x;

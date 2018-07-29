@@ -1,9 +1,11 @@
-const {client_id, client_secret, access_token} = require('./auth').vimeoAuth;
-
 const Vimeo = require('vimeo').Vimeo;
 const winston = require('winston');
 
-let client = new Vimeo(client_id, client_secret, access_token);
+let client = new Vimeo(
+  process.env.VIMEO_CLIENT_ID,
+  process.env.VIMEO_CLIENT_SECRET,
+  process.env.VIMEO_ACCESS_TOKEN
+);
 
 module.exports = (fileName) => new Promise((resolve, reject) => {
   client.streamingUpload(fileName, (err, body, statusCode, headers) => {

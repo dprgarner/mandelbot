@@ -1,0 +1,10 @@
+version: "3.6"
+
+services:
+  bot:
+    volumes:
+      - .:/app
+      - ./data:/data
+    # environment:
+    #   INSTANT: 1
+    #   LIVE: 1

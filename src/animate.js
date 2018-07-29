@@ -19,9 +19,9 @@ const constructSet = require('./mandelbrot').constructSet;
 const drawMandelbrot = require('./mandelbrot').drawMandelbrot;
 const renderSetToFile = require('./mandelbrot').renderSetToFile;
 
-const {OUTPUT_DIR, TEST, DOCKER} = require('./env');
-const ffmpeg = DOCKER ? 'ffmpeg' : 'node_modules\\.bin\\ffmpeg.cmd';
-const gifsicle = exports.gifsicle = DOCKER ? '/usr/bin/gifsicle' : require('gifsicle');
+const {OUTPUT_DIR, TEST} = require('./env');
+const ffmpeg = '/bin/ffmpeg';
+const gifsicle = exports.gifsicle = '/usr/bin/gifsicle';
 
 // Input: list of promise *generators*.
 // Output: promise which resolves promises one-at-a-time in sequence, which
@@ -284,10 +284,11 @@ exports.createMp4 = function(params) {
       ffmpeg,
       [
         '-safe', '0',
-        '-y',
+          '-y',
         '-f', 'concat',
         '-i', concatFile,
-        '-vf', 'format=yuv420p',
+        // '-vf', 'format=yuv420p',
+        '-tune', 'animation',
         '-preset', 'veryslow',
         '-crf', '1',
         outputFile,
