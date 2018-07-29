@@ -4,6 +4,10 @@ A twitter bot that tweets images and GIFs of the Mandelbrot set.
 
 Lives at: https://twitter.com/benoitmandelbot
 
+As it stands, this bot generates a zooming-in GIF of the Mandelbrot set with a few preview slides, and tweets it every few hours. It also occasionally replies to the Colour Schemes from the bot @colorschemez.
+
+There is also some code for generating videos instead of GIFs, but that's currently out-of-action, due to the switch to docker-compose and going twice over the Vimeo storage limit.
+
 ## Running locally with Docker
 
 If using docker-machine, unset any docker-machine variables with:
